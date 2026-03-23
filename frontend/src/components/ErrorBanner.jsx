@@ -1,9 +1,9 @@
 export default function ErrorBanner({ message }) {
   if (!message) return null;
+
   return (
-    <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
-      {message}
+    <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700 shadow-sm">
+      <span className="font-semibold">Heads up:</span> {message}
     </div>
   );
 }
-

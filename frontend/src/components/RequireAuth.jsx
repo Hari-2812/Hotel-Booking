@@ -1,13 +1,17 @@
-import { Navigate } from "react-router-dom";
-import { useContext } from "react";
-import { AuthContext } from "../context/AuthContext";
+import { Navigate, useLocation } from 'react-router-dom';
+import { useContext } from 'react';
+import { AuthContext } from '../context/auth-context';
+import { PageSkeleton } from './LoadingSkeleton';
 
 export default function RequireAuth({ children, roles }) {
   const { token, user, loading } = useContext(AuthContext);
+  const location = useLocation();
 
-  if (loading) return <div className="p-6 text-center text-gray-600">Loading...</div>;
-  if (!token) return <Navigate to="/login" replace />;
-  if (roles?.length && user?.role && !roles.includes(user.role)) return <Navigate to="/unauthorized" replace />;
+  if (loading) return <PageSkeleton />;
+  if (!token) return <Navigate to="/login" replace state={{ from: location.pathname }} />;
+  if (roles?.length && user?.role && !roles.includes(user.role)) {
+    return <Navigate to="/unauthorized" replace />;
+  }
+
   return children;
 }
-

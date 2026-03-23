@@ -3,36 +3,27 @@ export default function Pagination({ page, total, limit, onPageChange }) {
   if (totalPages <= 1) return null;
 
   const pages = [];
-  for (let p = Math.max(1, page - 2); p <= Math.min(totalPages, page + 2); p++) pages.push(p);
+  for (let value = Math.max(1, page - 2); value <= Math.min(totalPages, page + 2); value += 1) {
+    pages.push(value);
+  }
 
   return (
-    <div className="mt-6 flex flex-wrap items-center justify-center gap-2">
-      <button
-        className="rounded-md border px-3 py-1 text-sm disabled:opacity-40"
-        disabled={page <= 1}
-        onClick={() => onPageChange(page - 1)}
-      >
-        Prev
+    <div className="flex flex-wrap items-center justify-center gap-2 pt-4">
+      <button className="btn-secondary" disabled={page <= 1} onClick={() => onPageChange(page - 1)}>
+        Previous
       </button>
-      {pages.map((p) => (
+      {pages.map((value) => (
         <button
-          key={p}
-          className={`rounded-md border px-3 py-1 text-sm ${
-            p === page ? "border-indigo-600 bg-indigo-50 font-semibold text-indigo-700" : "bg-white"
-          }`}
-          onClick={() => onPageChange(p)}
+          key={value}
+          className={value === page ? 'btn-primary min-w-11' : 'btn-secondary min-w-11'}
+          onClick={() => onPageChange(value)}
         >
-          {p}
+          {value}
         </button>
       ))}
-      <button
-        className="rounded-md border px-3 py-1 text-sm disabled:opacity-40"
-        disabled={page >= totalPages}
-        onClick={() => onPageChange(page + 1)}
-      >
+      <button className="btn-secondary" disabled={page >= totalPages} onClick={() => onPageChange(page + 1)}>
         Next
       </button>
     </div>
   );
 }
-
