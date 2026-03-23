@@ -1,12 +1,7 @@
-<<<<<<< HEAD
 const http = require("http");
 const { Server } = require("socket.io");
 const cors = require("cors");
 const express = require("express");
-=======
-const http = require('http');
-const { Server } = require('socket.io');
->>>>>>> dee85cc8ed4e61834820f3790deced5fa7588147
 
 const { env } = require('./config/env');
 const { connectDB } = require('./config/db');
@@ -16,7 +11,6 @@ const { getAvailableRooms } = require('./services/availability');
 async function start() {
   await connectDB();
   const app = createApp();
-<<<<<<< HEAD
 
   // ✅ ALLOWED ORIGINS (LOCAL + VERCEL)
   const allowedOrigins = [
@@ -49,20 +43,10 @@ async function start() {
     cors: {
       origin: allowedOrigins,
       methods: ["GET", "POST"],
-=======
-  const server = http.createServer(app);
-
-  const allowedOrigins = ['http://localhost:5173', 'http://127.0.0.1:5173', env.CORS_ORIGIN].filter(Boolean);
-  const io = new Server(server, {
-    cors: {
-      origin: allowedOrigins,
-      methods: ['GET', 'POST'],
->>>>>>> dee85cc8ed4e61834820f3790deced5fa7588147
       credentials: true,
     },
   });
 
-<<<<<<< HEAD
   // ✅ SOCKET EVENTS
   io.on("connection", (socket) => {
     console.log("User connected:", socket.id);
@@ -107,48 +91,18 @@ async function start() {
           success: false,
           error: e.message || "Availability check failed",
         });
-=======
-  io.on('connection', (socket) => {
-    socket.on('availability:check', async (payload, cb) => {
-      try {
-        const result = await getAvailableRooms({
-          checkIn: payload?.checkIn,
-          checkOut: payload?.checkOut,
-          location: payload?.location,
-          minPrice: payload?.minPrice,
-          maxPrice: payload?.maxPrice,
-          guests: payload?.guests,
-          amenities: payload?.amenities || [],
-          rating: payload?.rating,
-          page: Number(payload?.page || 1),
-          limit: Number(payload?.limit || 12),
-          sort: payload?.sort,
-        });
-
-        cb?.({ success: true, rooms: result.rooms, total: result.total });
-      } catch (error) {
-        cb?.({ success: false, error: error.message || 'Availability check failed' });
->>>>>>> dee85cc8ed4e61834820f3790deced5fa7588147
       }
     });
   });
 
-<<<<<<< HEAD
   // ✅ START SERVER
-=======
->>>>>>> dee85cc8ed4e61834820f3790deced5fa7588147
   server.listen(env.PORT, () => {
     console.log(`🚀 Server running on port ${env.PORT}`);
   });
 }
 
-<<<<<<< HEAD
 // ✅ GLOBAL ERROR HANDLING
 start().catch((e) => {
   console.error("❌ Failed to start server", e);
-=======
-start().catch((error) => {
-  console.error('❌ Failed to start server', error);
->>>>>>> dee85cc8ed4e61834820f3790deced5fa7588147
   process.exit(1);
 });
