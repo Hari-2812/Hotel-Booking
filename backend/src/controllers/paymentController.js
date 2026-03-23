@@ -1,11 +1,10 @@
 const stripeLib = require("stripe");
 
-const Room = require("../models/Room");
 const Booking = require("../models/Booking");
 const { env } = require("../config/env");
 const { asyncHandler } = require("../utils/asyncHandler");
-const { computePrice, findOverlappingBookings } = require("../services/availability");
 const { sendBookingConfirmation } = require("../services/email");
+const { buildBookingDraft } = require('./bookingController');
 
 async function createStripePaymentIntent({ booking, amountCents }) {
   const stripe = stripeLib(env.STRIPE_SECRET_KEY);
@@ -29,46 +28,18 @@ const createStripeIntent = asyncHandler(async (req, res) => {
   }
 
   const { roomId, checkIn, checkOut, guests } = req.body;
-
-  const room = await Room.findById(roomId).lean();
-  if (!room || !room.isActive) return res.status(404).json({ success: false, error: "Room not found" });
-
-  const guestsNum = Number(guests);
-  if (!Number.isFinite(guestsNum) || guestsNum < 1 || guestsNum > room.maxGuests) {
-    return res.status(400).json({ success: false, error: "Invalid guests count" });
-  }
-
-  const { nights, total, nightlyPrice } = computePrice({
-    nightlyPrice: room.basePricePerNight,
-    checkIn,
-    checkOut,
-  });
-
-  // Availability check + reservation
-  const overlapping = await findOverlappingBookings({
-    roomIds: [room._id],
-    checkIn: new Date(checkIn),
-    checkOut: new Date(checkOut),
-  });
-  if (overlapping.length > 0) {
-    return res.status(409).json({ success: false, error: "Room is not available for selected dates" });
+  const draft = await buildBookingDraft({ userId: req.user.id, roomId, checkIn, checkOut, guests });
+  if (draft.error) {
+    return res.status(draft.error.status).json({ success: false, error: draft.error.message });
   }
 
   const booking = await Booking.create({
-    userId: req.user.id,
-    roomId: room._id,
-    checkIn: new Date(checkIn),
-    checkOut: new Date(checkOut),
-    guests: guestsNum,
-    nightlyPrice,
-    nights,
-    totalPrice: total,
-    currency: room.currency,
+    ...draft.bookingPayload,
     status: "pending",
     paymentStatus: "processing",
   });
 
-  const amountCents = Math.round(total * 100);
+  const amountCents = Math.round(draft.pricing.total * 100);
   const paymentIntent = await createStripePaymentIntent({ booking, amountCents });
 
   booking.paymentIntentId = paymentIntent.id;
@@ -78,8 +49,8 @@ const createStripeIntent = asyncHandler(async (req, res) => {
     success: true,
     bookingId: booking._id,
     clientSecret: paymentIntent.client_secret,
-    amount: total,
-    currency: room.currency,
+    amount: draft.pricing.total,
+    currency: draft.room.currency,
   });
 });
 

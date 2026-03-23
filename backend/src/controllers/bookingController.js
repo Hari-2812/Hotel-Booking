@@ -2,6 +2,83 @@ const Booking = require('../models/Booking');
 const Room = require('../models/Room');
 const { asyncHandler } = require('../utils/asyncHandler');
 const { computePrice, findOverlappingBookings } = require('../services/availability');
+const { sendBookingConfirmation } = require('../services/email');
+
+async function buildBookingDraft({ userId, roomId, checkIn, checkOut, guests }) {
+  const room = await Room.findById(roomId).lean();
+  if (!room || !room.isActive) {
+    return { error: { status: 404, message: 'Room not found' } };
+  }
+
+  const guestsNum = Number(guests);
+  if (!Number.isFinite(guestsNum) || guestsNum < 1 || guestsNum > room.maxGuests) {
+    return { error: { status: 400, message: 'Invalid guests count' } };
+  }
+
+  const overlapping = await findOverlappingBookings({
+    roomIds: [room._id],
+    checkIn: new Date(checkIn),
+    checkOut: new Date(checkOut),
+  });
+
+  if (overlapping.length > 0) {
+    return { error: { status: 409, message: 'Room is not available for selected dates' } };
+  }
+
+  const pricing = computePrice({
+    nightlyPrice: room.basePricePerNight,
+    checkIn,
+    checkOut,
+  });
+
+  return {
+    room,
+    guestsNum,
+    pricing,
+    bookingPayload: {
+      userId,
+      roomId: room._id,
+      checkIn: new Date(checkIn),
+      checkOut: new Date(checkOut),
+      guests: guestsNum,
+      nightlyPrice: pricing.nightlyPrice,
+      nights: pricing.nights,
+      totalPrice: pricing.total,
+      currency: room.currency,
+    },
+  };
+}
+
+const createManualBooking = asyncHandler(async (req, res) => {
+  const { roomId, checkIn, checkOut, guests } = req.body;
+  const draft = await buildBookingDraft({ userId: req.user.id, roomId, checkIn, checkOut, guests });
+  if (draft.error) {
+    return res.status(draft.error.status).json({ success: false, error: draft.error.message });
+  }
+
+  const booking = await Booking.create({
+    ...draft.bookingPayload,
+    status: 'confirmed',
+    paymentStatus: 'unpaid',
+  });
+
+  await sendBookingConfirmation({
+    toEmail: req.user.email,
+    subject: 'Your stay has been reserved',
+    text: `Your reservation at ${draft.room.hotelName} is booked from ${new Date(checkIn).toDateString()} to ${new Date(checkOut).toDateString()}.`,
+  });
+
+  res.status(201).json({
+    success: true,
+    booking,
+    room: {
+      id: draft.room._id,
+      hotelName: draft.room.hotelName,
+      location: draft.room.location,
+    },
+    paymentMode: 'pay_at_hotel',
+  });
+});
 
 const getMyBookings = asyncHandler(async (req, res) => {
   const page = Number(req.query.page || 1);
@@ -90,4 +167,4 @@ const adminCancelBooking = asyncHandler(async (req, res) => {
   res.json({ success: true, booking });
 });
 
-module.exports = { adminCancelBooking, cancelBooking, getMyBookings, modifyBooking };
+module.exports = { adminCancelBooking, cancelBooking, createManualBooking, getMyBookings, modifyBooking, buildBookingDraft };
