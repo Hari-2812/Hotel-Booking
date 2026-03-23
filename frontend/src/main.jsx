@@ -1,15 +1,27 @@
-import { StrictMode } from "react";
-import { createRoot } from "react-dom/client";
-import { Toaster } from "react-hot-toast";
-import "./index.css";
-import App from "./App.jsx";
-import { AuthProvider } from "./context/AuthContext";
+import { StrictMode } from 'react';
+import { createRoot } from 'react-dom/client';
+import { HelmetProvider } from 'react-helmet-async';
+import { Toaster } from 'react-hot-toast';
+import './index.css';
+import App from './App.jsx';
+import { AuthProvider } from './context/AuthContext';
 
-createRoot(document.getElementById("root")).render(
+createRoot(document.getElementById('root')).render(
   <StrictMode>
-    <AuthProvider>
-      <Toaster position="top-right" />
-      <App />
-    </AuthProvider>
+    <HelmetProvider>
+      <AuthProvider>
+        <Toaster
+          position="top-right"
+          toastOptions={{
+            style: {
+              borderRadius: '16px',
+              background: '#0f172a',
+              color: '#fff',
+            },
+          }}
+        />
+        <App />
+      </AuthProvider>
+    </HelmetProvider>
   </StrictMode>
 );

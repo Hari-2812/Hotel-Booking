@@ -1,511 +1,205 @@
-import { useEffect, useMemo, useState } from "react";
-import toast from "react-hot-toast";
-import { api } from "../services/api";
-import ErrorBanner from "../components/ErrorBanner";
+import { useEffect, useMemo, useState } from 'react';
+import { Helmet } from 'react-helmet-async';
+import toast from 'react-hot-toast';
+import ErrorBanner from '../components/ErrorBanner';
+import { api } from '../services/api';
 
-function AdminTabs({ tab, setTab }) {
-  const tabs = ["Rooms", "Bookings", "Users", "Analytics"];
+function StatTile({ label, value }) {
   return (
-    <div className="flex flex-wrap gap-2">
-      {tabs.map((t) => (
-        <button
-          key={t}
-          onClick={() => setTab(t)}
-          className={`rounded-md border px-3 py-1.5 text-sm ${
-            tab === t ? "border-indigo-600 bg-indigo-50 font-semibold text-indigo-700" : "bg-white"
-          }`}
-        >
-          {t}
-        </button>
-      ))}
+    <div className="rounded-3xl border border-white/60 bg-white/75 p-5 shadow-soft">
+      <p className="text-3xl font-semibold text-slate-950">{value}</p>
+      <p className="mt-2 text-xs uppercase tracking-[0.24em] text-slate-400">{label}</p>
     </div>
   );
 }
 
 export default function AdminDashboardPage() {
-  const [tab, setTab] = useState("Rooms");
-  const [error, setError] = useState("");
-
-  // Rooms
   const [rooms, setRooms] = useState([]);
-  const [roomsLoading, setRoomsLoading] = useState(true);
-  const [roomForm, setRoomForm] = useState({
-    hotelName: "",
-    location: "",
-    address: "",
-    description: "",
-    images: "",
-    amenities: "",
-    basePricePerNight: 100,
-    maxGuests: 2,
-  });
-
-  // Bookings
   const [bookings, setBookings] = useState([]);
-  const [bookingsLoading, setBookingsLoading] = useState(false);
-
-  // Users
   const [users, setUsers] = useState([]);
-  const [usersLoading, setUsersLoading] = useState(false);
+  const [analytics, setAnalytics] = useState({ metrics: {}, series: [] });
+  const [error, setError] = useState('');
+  const [form, setForm] = useState({ hotelName: '', location: '', address: '', description: '', amenities: '', images: '', tags: '', basePricePerNight: 120, maxGuests: 2, isFeatured: true });
 
-  // Analytics
-  const [metrics, setMetrics] = useState(null);
-  const [analyticsLoading, setAnalyticsLoading] = useState(false);
-
-  async function fetchRooms() {
-    setRoomsLoading(true);
-    setError("");
+  async function loadAdminData() {
+    setError('');
     try {
-      const res = await api.get("/api/admin/rooms", { params: { page: 1, limit: 50 } });
-      setRooms(res.data.rooms || []);
-    } catch (e) {
-      setError(e.message || "Failed to load rooms");
-    } finally {
-      setRoomsLoading(false);
-    }
-  }
-
-  async function fetchBookings() {
-    setBookingsLoading(true);
-    setError("");
-    try {
-      const res = await api.get("/api/admin/bookings", { params: { page: 1, limit: 50 } });
-      setBookings(res.data.bookings || []);
-    } catch (e) {
-      setError(e.message || "Failed to load bookings");
-    } finally {
-      setBookingsLoading(false);
-    }
-  }
-
-  async function fetchUsers() {
-    setUsersLoading(true);
-    setError("");
-    try {
-      const res = await api.get("/api/admin/users", { params: { page: 1, limit: 50 } });
-      setUsers(res.data.users || []);
-    } catch (e) {
-      setError(e.message || "Failed to load users");
-    } finally {
-      setUsersLoading(false);
-    }
-  }
-
-  async function onUpdateUserRole(userId, role) {
-    setError("");
-    try {
-      await api.put(`/api/admin/users/${userId}/role`, { role });
-      toast.success("User role updated");
-      await fetchUsers();
-    } catch (e) {
-      setError(e.message || "Update role failed");
-    }
-  }
-
-  async function onDeleteUser(userId) {
-    setError("");
-    if (!confirm("Delete this user? This cannot be undone.")) return;
-    try {
-      await api.delete(`/api/admin/users/${userId}`);
-      toast.success("User deleted");
-      await fetchUsers();
-    } catch (e) {
-      setError(e.message || "Delete user failed");
-    }
-  }
-
-  async function fetchAnalytics() {
-    setAnalyticsLoading(true);
-    setError("");
-    try {
-      const res = await api.get("/api/admin/analytics");
-      setMetrics(res.data.metrics || null);
-    } catch (e) {
-      setError(e.message || "Failed to load analytics");
-    } finally {
-      setAnalyticsLoading(false);
+      const [roomsResponse, bookingsResponse, usersResponse, analyticsResponse] = await Promise.all([
+        api.get('/api/admin/rooms', { params: { page: 1, limit: 50 } }),
+        api.get('/api/admin/bookings', { params: { page: 1, limit: 50 } }),
+        api.get('/api/admin/users', { params: { page: 1, limit: 50 } }),
+        api.get('/api/admin/analytics'),
+      ]);
+      setRooms(roomsResponse.data.rooms || []);
+      setBookings(bookingsResponse.data.bookings || []);
+      setUsers(usersResponse.data.users || []);
+      setAnalytics(analyticsResponse.data);
+    } catch (loadError) {
+      setError(loadError.message || 'Failed to load admin data');
     }
   }
 
   useEffect(() => {
-    fetchRooms();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    loadAdminData();
   }, []);
 
-  useEffect(() => {
-    if (tab === "Rooms") fetchRooms();
-    if (tab === "Bookings") fetchBookings();
-    if (tab === "Users") fetchUsers();
-    if (tab === "Analytics") fetchAnalytics();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tab]);
-
-  function parseArrayInput(str) {
-    return (str || "")
-      .split(",")
-      .map((s) => s.trim())
-      .filter(Boolean);
-  }
-
-  async function onCreateOrUpdate(roomId) {
-    setError("");
-    const payload = {
-      ...roomForm,
-      images: parseArrayInput(roomForm.images),
-      amenities: parseArrayInput(roomForm.amenities),
-      basePricePerNight: Number(roomForm.basePricePerNight),
-      maxGuests: Number(roomForm.maxGuests),
-    };
-
+  async function createRoom(event) {
+    event.preventDefault();
     try {
-      if (roomId) {
-        await api.put(`/api/rooms/${roomId}`, payload);
-        toast.success("Room updated");
-      } else {
-        await api.post("/api/rooms", payload);
-        toast.success("Room created");
-      }
-      await fetchRooms();
-      setRoomForm({
-        hotelName: "",
-        location: "",
-        address: "",
-        description: "",
-        images: "",
-        amenities: "",
-        basePricePerNight: 100,
-        maxGuests: 2,
-      });
-    } catch (e) {
-      setError(e.message || "Save failed");
+      await api.post('/api/rooms', form);
+      toast.success('Room created');
+      setForm({ hotelName: '', location: '', address: '', description: '', amenities: '', images: '', tags: '', basePricePerNight: 120, maxGuests: 2, isFeatured: true });
+      await loadAdminData();
+    } catch (createError) {
+      setError(createError.message || 'Failed to create room');
     }
   }
 
-  async function onDelete(roomId) {
-    setError("");
-    if (!confirm("Delete this room?")) return;
+  async function updateUserRole(userId, role) {
     try {
-      await api.delete(`/api/rooms/${roomId}`);
-      toast.success("Room deleted");
-      await fetchRooms();
-    } catch (e) {
-      setError(e.message || "Delete failed");
+      await api.put(`/api/admin/users/${userId}/role`, { role });
+      toast.success('User role updated');
+      await loadAdminData();
+    } catch (updateError) {
+      setError(updateError.message || 'Failed to update role');
     }
   }
 
-  const [editingRoomId, setEditingRoomId] = useState(null);
-  useEffect(() => {
-    if (!editingRoomId) return;
-    const r = rooms.find((x) => x._id === editingRoomId);
-    if (!r) return;
-    setRoomForm({
-      hotelName: r.hotelName || "",
-      location: r.location || "",
-      address: r.address || "",
-      description: r.description || "",
-      images: (r.images || []).join(", "),
-      amenities: (r.amenities || []).join(", "),
-      basePricePerNight: r.basePricePerNight || 100,
-      maxGuests: r.maxGuests || 2,
-    });
-  }, [editingRoomId, rooms]);
+  const topMetrics = useMemo(() => analytics.metrics || {}, [analytics.metrics]);
 
   return (
-    <div className="space-y-6">
-      <div className="card p-4">
-        <h1 className="text-xl font-bold text-indigo-700">Admin Dashboard</h1>
-        <div className="mt-2 text-sm text-gray-600">Manage rooms, bookings, users and analytics.</div>
-        <div className="mt-4">
-          <AdminTabs tab={tab} setTab={setTab} />
-        </div>
-      </div>
-
-      {error && <ErrorBanner message={error} />}
-
-      {tab === "Rooms" && (
-        <div className="grid gap-6 lg:grid-cols-2">
-          <div className="card p-4">
-            <h2 className="text-sm font-semibold text-gray-800">Rooms</h2>
-            {roomsLoading ? (
-              <div className="mt-3 text-sm text-gray-600">Loading...</div>
-            ) : rooms.length === 0 ? (
-              <div className="mt-3 text-sm text-gray-600">No rooms found.</div>
-            ) : (
-              <div className="mt-3 overflow-x-auto">
-                <table className="min-w-full text-sm">
-                  <thead>
-                    <tr className="bg-gray-50 text-left text-xs text-gray-600">
-                      <th className="px-3 py-2">Hotel</th>
-                      <th className="px-3 py-2">Location</th>
-                      <th className="px-3 py-2">Price</th>
-                      <th className="px-3 py-2">Guests</th>
-                      <th className="px-3 py-2">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {rooms.map((r) => (
-                      <tr key={r._id} className="border-t">
-                        <td className="px-3 py-3 font-semibold">{r.hotelName}</td>
-                        <td className="px-3 py-3 text-gray-700">{r.location}</td>
-                        <td className="px-3 py-3 text-indigo-700 font-semibold">${r.basePricePerNight}</td>
-                        <td className="px-3 py-3">{r.maxGuests}</td>
-                        <td className="px-3 py-3">
-                          <div className="flex gap-2">
-                            <button
-                              onClick={() => setEditingRoomId(r._id)}
-                              className="rounded-md border px-3 py-1 text-xs hover:bg-gray-50"
-                            >
-                              Edit
-                            </button>
-                            <button
-                              onClick={() => onDelete(r._id)}
-                              className="rounded-md border border-red-200 px-3 py-1 text-xs text-red-700 hover:bg-red-50"
-                            >
-                              Delete
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
+    <>
+      <Helmet>
+        <title>Admin dashboard | StayBook AI</title>
+      </Helmet>
+      <div className="space-y-8">
+        <section className="glass-panel p-8 md:p-10">
+          <p className="eyebrow">Admin control center</p>
+          <h1 className="mt-3 text-4xl font-semibold text-slate-950">Manage rooms, bookings, users, and revenue insights.</h1>
+          <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+            <StatTile label="Revenue" value={`$${Number(topMetrics.revenue || 0).toFixed(0)}`} />
+            <StatTile label="Confirmed" value={topMetrics.confirmedBookings || 0} />
+            <StatTile label="Pending" value={topMetrics.pendingBookings || 0} />
+            <StatTile label="Rooms" value={topMetrics.roomsCount || 0} />
+            <StatTile label="Users" value={topMetrics.usersCount || 0} />
           </div>
+        </section>
 
-          <div className="card p-4">
-            <h2 className="text-sm font-semibold text-gray-800">{editingRoomId ? "Edit room" : "Create room"}</h2>
+        {error && <ErrorBanner message={error} />}
 
-            <div className="mt-3 space-y-3 text-sm">
-              <input
-                className="input"
-                placeholder="Hotel name"
-                value={roomForm.hotelName}
-                onChange={(e) => setRoomForm((s) => ({ ...s, hotelName: e.target.value }))}
-              />
-              <input
-                className="input"
-                placeholder="Location (e.g. Goa)"
-                value={roomForm.location}
-                onChange={(e) => setRoomForm((s) => ({ ...s, location: e.target.value }))}
-              />
-              <input
-                className="input"
-                placeholder="Address"
-                value={roomForm.address}
-                onChange={(e) => setRoomForm((s) => ({ ...s, address: e.target.value }))}
-              />
-              <textarea
-                className="h-20 w-full resize-none input"
-                placeholder="Description"
-                value={roomForm.description}
-                onChange={(e) => setRoomForm((s) => ({ ...s, description: e.target.value }))}
-              />
-              <input
-                className="input"
-                placeholder="Images URLs (comma separated)"
-                value={roomForm.images}
-                onChange={(e) => setRoomForm((s) => ({ ...s, images: e.target.value }))}
-              />
-              <input
-                className="input"
-                placeholder="Amenities (comma separated)"
-                value={roomForm.amenities}
-                onChange={(e) => setRoomForm((s) => ({ ...s, amenities: e.target.value }))}
-              />
-              <div className="grid grid-cols-2 gap-3">
-                <input
-                  type="number"
-                  className="input"
-                  placeholder="Base price per night"
-                  value={roomForm.basePricePerNight}
-                  onChange={(e) => setRoomForm((s) => ({ ...s, basePricePerNight: e.target.value }))}
-                />
-                <input
-                  type="number"
-                  className="input"
-                  placeholder="Max guests"
-                  value={roomForm.maxGuests}
-                  onChange={(e) => setRoomForm((s) => ({ ...s, maxGuests: e.target.value }))}
-                />
-              </div>
-
-              <div className="flex gap-2">
-                <button
-                  onClick={() => onCreateOrUpdate(editingRoomId)}
-                  className="flex-1 btn-primary px-3 py-2"
-                >
-                  {editingRoomId ? "Update" : "Create"}
-                </button>
-                {editingRoomId && (
-                  <button
-                    onClick={() => {
-                      setEditingRoomId(null);
-                      setRoomForm({
-                        hotelName: "",
-                        location: "",
-                        address: "",
-                        description: "",
-                        images: "",
-                        amenities: "",
-                        basePricePerNight: 100,
-                        maxGuests: 2,
-                      });
-                    }}
-                    className="rounded-md border border-gray-200 px-3 py-2 text-sm hover:bg-gray-50"
-                  >
-                    Cancel
-                  </button>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {tab === "Bookings" && (
-        <div className="card p-4">
-          <h2 className="text-sm font-semibold text-gray-800">Bookings</h2>
-          {bookingsLoading ? (
-            <div className="mt-3 text-sm text-gray-600">Loading...</div>
-          ) : (
-            <div className="mt-3 overflow-x-auto">
-              <table className="min-w-full text-sm">
-                <thead>
-                  <tr className="bg-gray-50 text-left text-xs text-gray-600">
-                    <th className="px-3 py-2">User</th>
-                    <th className="px-3 py-2">Room</th>
-                    <th className="px-3 py-2">Dates</th>
-                    <th className="px-3 py-2">Total</th>
-                    <th className="px-3 py-2">Status</th>
-                    <th className="px-3 py-2">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {bookings.map((b) => (
-                    <tr key={b._id} className="border-t">
-                      <td className="px-3 py-3">
-                        <div className="font-semibold">{b.userId?.name}</div>
-                        <div className="text-xs text-gray-500">{b.userId?.email}</div>
-                      </td>
-                      <td className="px-3 py-3">
-                        <div className="font-semibold">{b.roomId?.hotelName}</div>
-                        <div className="text-xs text-gray-500">{b.roomId?.location}</div>
-                      </td>
-                      <td className="px-3 py-3 text-gray-700">
-                        {new Date(b.checkIn).toLocaleDateString()} - {new Date(b.checkOut).toLocaleDateString()}
-                      </td>
-                      <td className="px-3 py-3 font-semibold text-indigo-700">${Number(b.totalPrice).toFixed(2)}</td>
-                      <td className="px-3 py-3">
-                        <span className="rounded-full border bg-white px-2 py-0.5 text-xs">{b.status}</span>
-                      </td>
-                      <td className="px-3 py-3">
-                        {b.status !== "cancelled" ? (
-                          <button
-                            onClick={async () => {
-                              try {
-                                await api.delete(`/api/admin/bookings/${b._id}`);
-                                toast.success("Booking cancelled");
-                                await fetchBookings();
-                              } catch (e) {
-                                toast.error(e.message || "Cancel failed");
-                              }
-                            }}
-                            className="rounded-md border px-3 py-1 text-xs hover:bg-gray-50"
-                          >
-                            Cancel
-                          </button>
-                        ) : (
-                          <span className="text-xs text-gray-500">—</span>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
-      )}
-
-      {tab === "Users" && (
-        <div className="card p-4">
-          <h2 className="text-sm font-semibold text-gray-800">Users</h2>
-          {usersLoading ? (
-            <div className="mt-3 text-sm text-gray-600">Loading...</div>
-          ) : (
-            <div className="mt-3 overflow-x-auto">
-              <table className="min-w-full text-sm">
-                <thead>
-                  <tr className="bg-gray-50 text-left text-xs text-gray-600">
-                    <th className="px-3 py-2">Name</th>
-                    <th className="px-3 py-2">Email</th>
-                    <th className="px-3 py-2">Role</th>
-                    <th className="px-3 py-2">Wishlist</th>
-                    <th className="px-3 py-2">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {users.map((u) => (
-                    <tr key={u._id} className="border-t">
-                      <td className="px-3 py-3 font-semibold">{u.name}</td>
-                      <td className="px-3 py-3 text-gray-700">{u.email}</td>
-                      <td className="px-3 py-3">
-                        <span className="rounded-full border bg-white px-2 py-0.5 text-xs">{u.role}</span>
-                      </td>
-                      <td className="px-3 py-3">{(u.wishlist || []).length || 0}</td>
-                      <td className="px-3 py-3">
-                        <div className="flex flex-wrap gap-2">
-                          <select
-                            value={u.role}
-                            onChange={(e) => onUpdateUserRole(u._id, e.target.value)}
-                            className="rounded-md border bg-white px-2 py-1 text-xs"
-                          >
-                            <option value="user">user</option>
-                            <option value="admin">admin</option>
-                          </select>
-                          <button
-                            onClick={() => onDeleteUser(u._id)}
-                            className="rounded-md border border-red-200 px-3 py-1 text-xs text-red-700 hover:bg-red-50"
-                          >
-                            Delete
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
-      )}
-
-      {tab === "Analytics" && (
-        <div className="card p-4">
-          <h2 className="text-sm font-semibold text-gray-800">Admin analytics</h2>
-          {analyticsLoading ? (
-            <div className="mt-3 text-sm text-gray-600">Loading...</div>
-          ) : !metrics ? (
-            <div className="mt-3 text-sm text-gray-600">No analytics yet.</div>
-          ) : (
-            <div className="mt-3 grid gap-4 md:grid-cols-3">
-              <div className="card p-4">
-                <div className="text-xs text-gray-500">Confirmed bookings</div>
-                <div className="mt-1 text-2xl font-bold text-indigo-700">{metrics.confirmedBookings}</div>
-              </div>
-              <div className="card p-4 md:col-span-2">
-                <div className="text-xs text-gray-500">Revenue</div>
-                <div className="mt-1 text-2xl font-bold text-indigo-700">${Number(metrics.revenue).toFixed(2)}</div>
-                <div className="mt-1 text-xs text-gray-500">
-                  From {new Date(metrics.from).toLocaleDateString()} to {new Date(metrics.to).toLocaleDateString()}
+        <section className="grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
+          <form className="glass-panel p-6" onSubmit={createRoom}>
+            <p className="eyebrow">Inventory</p>
+            <h2 className="mt-2 text-2xl font-semibold text-slate-950">Add a new room</h2>
+            <div className="mt-5 grid gap-3 md:grid-cols-2">
+              {[
+                ['hotelName', 'Hotel name'],
+                ['location', 'Location'],
+                ['address', 'Address'],
+                ['description', 'Description'],
+                ['amenities', 'Amenities (comma separated)'],
+                ['images', 'Images (comma separated URLs)'],
+                ['tags', 'Tags (comma separated)'],
+              ].map(([key, label]) => (
+                <div key={key} className={key === 'description' || key === 'images' ? 'md:col-span-2' : ''}>
+                  <label className="label">{label}</label>
+                  {key === 'description' ? (
+                    <textarea className="input mt-2 min-h-28 resize-none" value={form[key]} onChange={(e) => setForm((current) => ({ ...current, [key]: e.target.value }))} />
+                  ) : (
+                    <input className="input mt-2" value={form[key]} onChange={(e) => setForm((current) => ({ ...current, [key]: e.target.value }))} />
+                  )}
                 </div>
+              ))}
+              <div>
+                <label className="label">Base price</label>
+                <input className="input mt-2" type="number" value={form.basePricePerNight} onChange={(e) => setForm((current) => ({ ...current, basePricePerNight: Number(e.target.value) }))} />
+              </div>
+              <div>
+                <label className="label">Max guests</label>
+                <input className="input mt-2" type="number" value={form.maxGuests} onChange={(e) => setForm((current) => ({ ...current, maxGuests: Number(e.target.value) }))} />
               </div>
             </div>
-          )}
-        </div>
-      )}
-    </div>
+            <button className="btn-primary mt-5">Create room</button>
+          </form>
+
+          <div className="glass-panel p-6">
+            <p className="eyebrow">Revenue trend</p>
+            <h2 className="mt-2 text-2xl font-semibold text-slate-950">Bookings over time</h2>
+            <div className="mt-6 space-y-3">
+              {(analytics.series || []).length === 0 ? (
+                <p className="text-sm text-slate-500">Booking trend data will populate as confirmed reservations come in.</p>
+              ) : (
+                analytics.series.map((point) => {
+                  const width = Math.max(8, Math.min(100, (point.revenue / Math.max(...analytics.series.map((entry) => entry.revenue || 1))) * 100));
+                  return (
+                    <div key={point.date}>
+                      <div className="mb-1 flex items-center justify-between text-sm text-slate-500">
+                        <span>{point.date}</span>
+                        <span>${Number(point.revenue || 0).toFixed(0)} • {point.count} bookings</span>
+                      </div>
+                      <div className="h-3 rounded-full bg-slate-100">
+                        <div className="h-3 rounded-full bg-[linear-gradient(90deg,#0f172a,#6366f1)]" style={{ width: `${width}%` }} />
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>
+        </section>
+
+        <section className="grid gap-6 xl:grid-cols-3">
+          <div className="glass-panel p-6 xl:col-span-1">
+            <h2 className="text-xl font-semibold text-slate-950">Users</h2>
+            <div className="mt-5 space-y-3">
+              {users.map((user) => (
+                <div key={user._id} className="rounded-3xl border border-slate-100 bg-white/70 p-4 shadow-soft">
+                  <p className="font-semibold text-slate-900">{user.name}</p>
+                  <p className="mt-1 text-sm text-slate-500">{user.email}</p>
+                  <div className="mt-3 flex items-center justify-between gap-3">
+                    <span className="badge">{user.authProvider || 'local'}</span>
+                    <select className="input max-w-32" value={user.role} onChange={(e) => updateUserRole(user._id, e.target.value)}>
+                      <option value="user">user</option>
+                      <option value="admin">admin</option>
+                    </select>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="glass-panel p-6 xl:col-span-1">
+            <h2 className="text-xl font-semibold text-slate-950">Bookings</h2>
+            <div className="mt-5 space-y-3">
+              {bookings.slice(0, 8).map((booking) => (
+                <div key={booking._id} className="rounded-3xl border border-slate-100 bg-white/70 p-4 shadow-soft text-sm">
+                  <p className="font-semibold text-slate-900">{booking.roomId?.hotelName}</p>
+                  <p className="mt-1 text-slate-500">{booking.userId?.email}</p>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <span className="badge">{booking.status}</span>
+                    <span className="badge">${Number(booking.totalPrice || 0).toFixed(0)}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="glass-panel p-6 xl:col-span-1">
+            <h2 className="text-xl font-semibold text-slate-950">Rooms</h2>
+            <div className="mt-5 space-y-3">
+              {rooms.slice(0, 8).map((room) => (
+                <div key={room._id} className="rounded-3xl border border-slate-100 bg-white/70 p-4 shadow-soft text-sm">
+                  <p className="font-semibold text-slate-900">{room.hotelName}</p>
+                  <p className="mt-1 text-slate-500">{room.location}</p>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <span className="badge">${room.basePricePerNight}/night</span>
+                    <span className="badge">{room.maxGuests} guests</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      </div>
+    </>
   );
 }
-
