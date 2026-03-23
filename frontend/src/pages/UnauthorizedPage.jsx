@@ -1,9 +1,9 @@
 export default function UnauthorizedPage() {
   return (
-    <div className="card p-6 text-sm text-gray-700">
-      <h1 className="text-lg font-bold text-red-700">Unauthorized</h1>
-      <p className="mt-2">You don’t have permission to view this page.</p>
+    <div className="mx-auto max-w-3xl glass-panel p-10 text-center">
+      <p className="eyebrow">Access denied</p>
+      <h1 className="mt-3 text-4xl font-semibold text-slate-950">You do not have permission to access this page.</h1>
+      <p className="mt-4 text-sm text-slate-600">If you believe this is a mistake, sign in with an administrator account or return to the discover page.</p>
     </div>
   );
 }
-

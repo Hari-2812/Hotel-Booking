@@ -1,92 +1,55 @@
-const http = require("http");
-const { Server } = require("socket.io");
-const cors = require("cors");
+const http = require('http');
+const { Server } = require('socket.io');
 
-const { env } = require("./config/env");
-const { connectDB } = require("./config/db");
-const { createApp } = require("./app");
-const { getAvailableRooms } = require("./services/availability");
+const { env } = require('./config/env');
+const { connectDB } = require('./config/db');
+const { createApp } = require('./app');
+const { getAvailableRooms } = require('./services/availability');
 
 async function start() {
   await connectDB();
-
   const app = createApp();
-
-  // ✅ IMPORTANT: Add CORS for Express (HTTP requests)
-  app.use(
-    cors({
-      origin: "http://localhost:5173", // frontend URL
-      credentials: true,
-    })
-  );
-
-  app.use(require("express").json());
-
   const server = http.createServer(app);
 
-  // ✅ Socket.IO CORS (WebSockets)
+  const allowedOrigins = ['http://localhost:5173', 'http://127.0.0.1:5173', env.CORS_ORIGIN].filter(Boolean);
   const io = new Server(server, {
     cors: {
-      origin: "http://localhost:5173",
-      methods: ["GET", "POST"],
+      origin: allowedOrigins,
+      methods: ['GET', 'POST'],
+      credentials: true,
     },
   });
 
-  // ✅ Socket events
-  io.on("connection", (socket) => {
-    console.log("User connected:", socket.id);
-
-    socket.on("availability:check", async (payload, cb) => {
+  io.on('connection', (socket) => {
+    socket.on('availability:check', async (payload, cb) => {
       try {
-        const {
-          checkIn,
-          checkOut,
-          location,
-          minPrice,
-          maxPrice,
-          guests,
-          page = 1,
-          limit = 12,
-        } = payload || {};
-
         const result = await getAvailableRooms({
-          checkIn,
-          checkOut,
-          location,
-          minPrice,
-          maxPrice,
-          guests,
-          page: Number(page),
-          limit: Number(limit),
+          checkIn: payload?.checkIn,
+          checkOut: payload?.checkOut,
+          location: payload?.location,
+          minPrice: payload?.minPrice,
+          maxPrice: payload?.maxPrice,
+          guests: payload?.guests,
+          amenities: payload?.amenities || [],
+          rating: payload?.rating,
+          page: Number(payload?.page || 1),
+          limit: Number(payload?.limit || 12),
+          sort: payload?.sort,
         });
 
-        cb?.({
-          success: true,
-          rooms: result.rooms,
-          total: result.total,
-        });
-      } catch (e) {
-        console.error("Socket Error:", e);
-        cb?.({
-          success: false,
-          error: e.message || "Availability check failed",
-        });
+        cb?.({ success: true, rooms: result.rooms, total: result.total });
+      } catch (error) {
+        cb?.({ success: false, error: error.message || 'Availability check failed' });
       }
-    });
-
-    socket.on("disconnect", () => {
-      console.log("User disconnected:", socket.id);
     });
   });
 
-  // ✅ Start server
   server.listen(env.PORT, () => {
     console.log(`🚀 Server running on http://localhost:${env.PORT}`);
   });
 }
 
-// ✅ Error handling
-start().catch((e) => {
-  console.error("❌ Failed to start server", e);
+start().catch((error) => {
+  console.error('❌ Failed to start server', error);
   process.exit(1);
 });

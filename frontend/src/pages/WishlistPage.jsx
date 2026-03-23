@@ -1,75 +1,74 @@
-import { useEffect, useState } from "react";
-import { api } from "../services/api";
-import { RoomCardSkeleton } from "../components/LoadingSkeleton";
-import RoomCard from "../components/RoomCard";
-import ErrorBanner from "../components/ErrorBanner";
+import { useEffect, useState } from 'react';
+import { Helmet } from 'react-helmet-async';
+import ErrorBanner from '../components/ErrorBanner';
+import { RoomCardSkeleton } from '../components/LoadingSkeleton';
+import RoomCard from '../components/RoomCard';
+import { api } from '../services/api';
 
 export default function WishlistPage() {
-  const [loading, setLoading] = useState(true);
   const [wishlist, setWishlist] = useState([]);
-  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
-  async function fetchWishlist() {
+  async function loadWishlist() {
     setLoading(true);
-    setError("");
+    setError('');
     try {
-      const res = await api.get("/api/users/me/wishlist");
-      setWishlist(res.data.wishlist || []);
-    } catch (e) {
-      setError(e.message || "Failed to load wishlist");
+      const response = await api.get('/api/users/me/wishlist');
+      setWishlist(response.data.wishlist || []);
+    } catch (loadError) {
+      setError(loadError.message || 'Failed to load wishlist');
     } finally {
       setLoading(false);
     }
   }
 
   useEffect(() => {
-    fetchWishlist();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    loadWishlist();
   }, []);
 
-  async function remove(roomId) {
+  async function removeWishlistItem(roomId) {
     try {
       await api.delete(`/api/users/me/wishlist/${roomId}`);
-      await fetchWishlist();
-    } catch (e) {
-      setError(e.message || "Remove failed");
+      await loadWishlist();
+    } catch (removeError) {
+      setError(removeError.message || 'Failed to remove item');
     }
   }
 
   return (
-    <div className="space-y-6">
-      {error && <ErrorBanner message={error} />}
-      <div className="card p-4">
-        <h1 className="text-xl font-bold text-indigo-700">Wishlist</h1>
-        <div className="mt-2 text-sm text-gray-600">{wishlist.length} saved rooms</div>
-      </div>
+    <>
+      <Helmet>
+        <title>Wishlist | StayBook AI</title>
+      </Helmet>
+      <div className="space-y-6">
+        <section className="glass-panel p-8">
+          <p className="eyebrow">Favorites</p>
+          <h1 className="mt-3 text-4xl font-semibold text-slate-950">Your saved hotels</h1>
+          <p className="mt-3 text-sm text-slate-600">Keep high-intent stays handy while you compare pricing, amenities, and availability.</p>
+        </section>
 
-      {loading ? (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <RoomCardSkeleton key={i} />
-          ))}
-        </div>
-      ) : wishlist.length === 0 ? (
-        <div className="card p-6 text-sm text-gray-600">
-          No wishlist items yet. Save rooms from the room details page.
-        </div>
-      ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {wishlist.map((room) => (
-            <div key={room._id} className="relative">
-              <RoomCard room={room} />
-              <button
-                onClick={() => remove(room._id)}
-                className="absolute right-3 top-3 rounded-md border border-red-200 bg-white/90 px-2 py-1 text-xs text-red-700 shadow-sm hover:bg-red-50"
-              >
-                Remove
-              </button>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
+        {error && <ErrorBanner message={error} />}
+
+        {loading ? (
+          <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+            {Array.from({ length: 6 }).map((_, index) => <RoomCardSkeleton key={index} />)}
+          </div>
+        ) : wishlist.length === 0 ? (
+          <div className="glass-panel p-8 text-center text-slate-600">You have not saved any hotels yet.</div>
+        ) : (
+          <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+            {wishlist.map((room) => (
+              <div key={room._id} className="relative">
+                <RoomCard room={room} />
+                <button className="absolute right-4 top-4 rounded-full bg-white px-3 py-1.5 text-xs font-semibold text-rose-600 shadow-soft" onClick={() => removeWishlistItem(room._id)}>
+                  Remove
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </>
   );
 }
-

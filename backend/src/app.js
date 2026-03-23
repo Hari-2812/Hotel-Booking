@@ -17,6 +17,7 @@ const userRoutes = require("./routes/userRoutes");
 const adminRoutes = require("./routes/adminRoutes");
 const paymentRoutes = require("./routes/paymentRoutes");
 const chatRoutes = require("./routes/chatRoutes");
+const aiRoutes = require("./routes/aiRoutes");
 
 function createApp() {
   const app = express();
@@ -33,7 +34,7 @@ function createApp() {
 
   app.use(helmet());
   app.use(hpp());
-  // app.use(mongoSanitize());
+  app.use(mongoSanitize());
   app.use(morgan("dev"));
 
   // ✅ FIXED CORS (IMPORTANT)
@@ -84,6 +85,7 @@ function createApp() {
   app.use("/api/admin", adminRoutes);
   app.use("/api/payments", paymentRoutes);
   app.use("/api/chat", chatRoutes);
+  app.use("/api/ai", aiRoutes);
 
   // ✅ Global error handler
   app.use(errorHandler);
