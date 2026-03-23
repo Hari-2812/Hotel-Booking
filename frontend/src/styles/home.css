@@ -1,0 +1,85 @@
+/* Page spacing */
+.home-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+/* Hero section */
+.home-hero {
+  border-radius: 1rem;
+  border: 1px solid #e5e7eb;
+  background: linear-gradient(135deg, #eef2ff, #ffffff);
+  padding: 1.5rem;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+}
+
+/* Filter card */
+.home-filter {
+  backdrop-filter: blur(10px);
+  background: rgba(255, 255, 255, 0.85);
+  border-radius: 1rem;
+  border: 1px solid #e5e7eb;
+  padding: 1rem;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.06);
+}
+
+/* Input */
+.home-input {
+  width: 100%;
+  border-radius: 0.5rem;
+  border: 1px solid #e5e7eb;
+  padding: 0.55rem 0.75rem;
+  font-size: 0.875rem;
+  transition: all 0.2s ease;
+}
+
+.home-input:focus {
+  border-color: #6366f1;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+  outline: none;
+}
+
+/* Section title */
+.home-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  background: linear-gradient(to right, #4f46e5, #6366f1);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* Badge */
+.home-badge {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 9999px;
+  border: 1px solid #e5e7eb;
+  padding: 0.25rem 0.6rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  background: white;
+  color: #374151;
+}
+
+.home-badge-primary {
+  background: #eef2ff;
+  color: #4f46e5;
+  border-color: #c7d2fe;
+}
+
+/* Empty state */
+.home-empty {
+  text-align: center;
+  padding: 1.5rem;
+  border-radius: 1rem;
+  border: 1px solid #e5e7eb;
+  background: white;
+  color: #6b7280;
+}
+
+/* Grid spacing */
+.home-grid {
+  display: grid;
+  gap: 1rem;
+}
