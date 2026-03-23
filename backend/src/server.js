@@ -1,6 +1,7 @@
 const http = require("http");
 const { Server } = require("socket.io");
 const cors = require("cors");
+const express = require("express");
 
 const { env } = require("./config/env");
 const { connectDB } = require("./config/db");
@@ -12,27 +13,42 @@ async function start() {
 
   const app = createApp();
 
-  // ✅ IMPORTANT: Add CORS for Express (HTTP requests)
+  // ✅ ALLOWED ORIGINS (LOCAL + VERCEL)
+  const allowedOrigins = [
+    "http://localhost:5173",
+    "https://hotel-booking-jz2dzzxto-haris-projects-f04f3456.vercel.app",
+  ];
+
+  // ✅ CORS (VERY IMPORTANT - PLACE BEFORE ROUTES)
   app.use(
     cors({
-      origin: "http://localhost:5173", // frontend URL
+      origin: function (origin, callback) {
+        if (!origin || allowedOrigins.includes(origin)) {
+          callback(null, true);
+        } else {
+          callback(new Error("CORS not allowed: " + origin));
+        }
+      },
       credentials: true,
     })
   );
 
-  app.use(require("express").json());
+  // ✅ JSON middleware
+  app.use(express.json());
 
+  // ✅ Create HTTP server
   const server = http.createServer(app);
 
-  // ✅ Socket.IO CORS (WebSockets)
+  // ✅ Socket.IO with CORS
   const io = new Server(server, {
     cors: {
-      origin: "http://localhost:5173",
+      origin: allowedOrigins,
       methods: ["GET", "POST"],
+      credentials: true,
     },
   });
 
-  // ✅ Socket events
+  // ✅ SOCKET EVENTS
   io.on("connection", (socket) => {
     console.log("User connected:", socket.id);
 
@@ -49,13 +65,18 @@ async function start() {
           limit = 12,
         } = payload || {};
 
+        // ✅ SAFE VALUES (IMPORTANT FIX)
+        const safeMinPrice = minPrice ? Number(minPrice) : 0;
+        const safeMaxPrice = maxPrice ? Number(maxPrice) : 100000;
+        const safeGuests = guests ? Number(guests) : 1;
+
         const result = await getAvailableRooms({
           checkIn,
           checkOut,
           location,
-          minPrice,
-          maxPrice,
-          guests,
+          minPrice: safeMinPrice,
+          maxPrice: safeMaxPrice,
+          guests: safeGuests,
           page: Number(page),
           limit: Number(limit),
         });
@@ -66,7 +87,7 @@ async function start() {
           total: result.total,
         });
       } catch (e) {
-        console.error("Socket Error:", e);
+        console.error("❌ Socket Error:", e);
         cb?.({
           success: false,
           error: e.message || "Availability check failed",
@@ -79,13 +100,13 @@ async function start() {
     });
   });
 
-  // ✅ Start server
+  // ✅ START SERVER
   server.listen(env.PORT, () => {
-    console.log(`🚀 Server running on http://localhost:${env.PORT}`);
+    console.log(`🚀 Server running on port ${env.PORT}`);
   });
 }
 
-// ✅ Error handling
+// ✅ GLOBAL ERROR HANDLING
 start().catch((e) => {
   console.error("❌ Failed to start server", e);
   process.exit(1);
