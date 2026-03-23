@@ -1,15 +1,13 @@
-const mongoose = require("mongoose");
+const mongoose = require('mongoose');
 
 const chatMessageSchema = new mongoose.Schema(
   {
-    conversationId: { type: String, default: "support", index: true },
-    fromUserId: { type: mongoose.Schema.Types.ObjectId, ref: "User", index: true },
+    conversationId: { type: String, default: 'support', index: true },
+    fromUserId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', index: true },
     message: { type: String, required: true, maxlength: 1200, trim: true },
-    // Basic role hint for UI
-    fromRole: { type: String, enum: ["user", "admin"], default: "user" },
+    fromRole: { type: String, enum: ['user', 'admin', 'ai'], default: 'user' },
   },
   { timestamps: true }
 );
 
-module.exports = mongoose.model("ChatMessage", chatMessageSchema);
-
+module.exports = mongoose.model('ChatMessage', chatMessageSchema);

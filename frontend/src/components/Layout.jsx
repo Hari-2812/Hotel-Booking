@@ -1,133 +1,159 @@
-import { Link, NavLink } from "react-router-dom";
-import { useContext, useState } from "react";
-import { AuthContext } from "../context/AuthContext";
+import { useContext, useState } from 'react';
+import { Link, NavLink } from 'react-router-dom';
+import { AuthContext } from '../context/auth-context';
+
+const navigation = [
+  { to: '/', label: 'Discover' },
+  { to: '/wishlist', label: 'Wishlist', auth: true },
+  { to: '/chat', label: 'AI Concierge', auth: true },
+  { to: '/dashboard', label: 'Dashboard', auth: true },
+  { to: '/admin', label: 'Admin', auth: true, role: 'admin' },
+];
 
 export default function Layout({ children }) {
   const { user, logout } = useContext(AuthContext);
   const [mobileOpen, setMobileOpen] = useState(false);
 
+  const visibleNav = navigation.filter((item) => {
+    if (item.auth && !user) return false;
+    if (item.role && user?.role !== item.role) return false;
+    return true;
+  });
+
   return (
-    <div className="min-h-screen bg-gradient-to-b from-indigo-50 via-white to-white text-gray-900">
-      <header className="sticky top-0 z-20 border-b bg-white/80 backdrop-blur">
-        <div className="app-container flex items-center justify-between py-3">
-          <Link to="/" className="text-lg font-semibold text-indigo-700">
-            StayBook
+    <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,_rgba(129,140,248,0.2),_transparent_35%),radial-gradient(circle_at_top_right,_rgba(45,212,191,0.15),_transparent_30%),linear-gradient(180deg,_#f8fafc,_#eef2ff_45%,_#f8fafc)] text-slate-900">
+      <header className="sticky top-0 z-50 border-b border-white/60 bg-white/70 backdrop-blur-xl">
+        <div className="app-container flex items-center justify-between py-4">
+          <Link to="/" className="flex items-center gap-3">
+            <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-slate-900 text-lg font-bold text-white shadow-glow">
+              S
+            </span>
+            <div>
+              <div className="text-sm font-semibold uppercase tracking-[0.3em] text-indigo-500">StayBook AI</div>
+              <div className="text-lg font-semibold text-slate-900">Premium hotel intelligence</div>
+            </div>
           </Link>
 
-          <nav className="hidden items-center gap-4 text-sm md:flex">
-            <NavLink to="/" className={({ isActive }) => (isActive ? "font-semibold text-indigo-700" : "text-gray-700")}>
-              Home
-            </NavLink>
+          <nav className="hidden items-center gap-2 lg:flex">
+            {visibleNav.map((item) => (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                className={({ isActive }) =>
+                  `rounded-full px-4 py-2 text-sm font-medium transition ${
+                    isActive ? 'bg-slate-900 text-white shadow-sm' : 'text-slate-600 hover:bg-white hover:text-slate-900'
+                  }`
+                }
+              >
+                {item.label}
+              </NavLink>
+            ))}
+          </nav>
 
+          <div className="hidden items-center gap-3 lg:flex">
             {user ? (
               <>
-                <NavLink to="/dashboard" className={({ isActive }) => (isActive ? "font-semibold text-indigo-700" : "text-gray-700")}>
-                  Dashboard
-                </NavLink>
-                {user.role === "admin" && (
-                  <NavLink to="/admin" className={({ isActive }) => (isActive ? "font-semibold text-indigo-700" : "text-gray-700")}>
-                    Admin
-                  </NavLink>
-                )}
-                <button
-                  onClick={logout}
-                  className="rounded-md bg-indigo-700 px-3 py-1.5 text-white hover:bg-indigo-800"
-                >
+                <div className="rounded-full bg-white px-4 py-2 text-sm shadow-soft">
+                  <span className="font-semibold text-slate-900">{user.name}</span>
+                  <span className="ml-2 text-slate-500">{user.role}</span>
+                </div>
+                <button className="btn-primary" onClick={logout}>
                   Logout
                 </button>
               </>
             ) : (
               <>
-                <NavLink to="/login" className={({ isActive }) => (isActive ? "font-semibold text-indigo-700" : "text-gray-700")}>
+                <Link to="/login" className="btn-secondary">
                   Login
-                </NavLink>
-                <NavLink to="/register" className={({ isActive }) => (isActive ? "font-semibold text-indigo-700" : "text-gray-700")}>
-                  Register
-                </NavLink>
+                </Link>
+                <Link to="/register" className="btn-primary">
+                  Get started
+                </Link>
               </>
             )}
-          </nav>
+          </div>
 
           <button
             type="button"
-            className="inline-flex items-center justify-center rounded-md border border-gray-200 bg-white p-2 text-gray-700 hover:bg-gray-50 md:hidden"
-            onClick={() => setMobileOpen((v) => !v)}
+            className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-white/70 bg-white text-slate-700 shadow-soft lg:hidden"
+            onClick={() => setMobileOpen((value) => !value)}
             aria-label="Toggle navigation"
           >
-            {mobileOpen ? "✕" : "☰"}
+            {mobileOpen ? '✕' : '☰'}
           </button>
         </div>
 
         {mobileOpen && (
-          <div className="md:hidden">
-            <div className="app-container pb-4">
-              <nav className="flex flex-col gap-2 text-sm">
+          <div className="border-t border-white/70 bg-white/90 lg:hidden">
+            <div className="app-container space-y-3 py-4">
+              {visibleNav.map((item) => (
                 <NavLink
-                  to="/"
+                  key={item.to}
+                  to={item.to}
                   onClick={() => setMobileOpen(false)}
-                  className={({ isActive }) => (isActive ? "font-semibold text-indigo-700" : "text-gray-700")}
+                  className={({ isActive }) =>
+                    `block rounded-2xl px-4 py-3 text-sm font-medium ${
+                      isActive ? 'bg-slate-900 text-white' : 'bg-slate-50 text-slate-700'
+                    }`
+                  }
                 >
-                  Home
+                  {item.label}
                 </NavLink>
+              ))}
 
-                {user ? (
-                  <>
-                    <NavLink
-                      to="/dashboard"
-                      onClick={() => setMobileOpen(false)}
-                      className={({ isActive }) => (isActive ? "font-semibold text-indigo-700" : "text-gray-700")}
-                    >
-                      Dashboard
-                    </NavLink>
-                    {user.role === "admin" && (
-                      <NavLink
-                        to="/admin"
-                        onClick={() => setMobileOpen(false)}
-                        className={({ isActive }) => (isActive ? "font-semibold text-indigo-700" : "text-gray-700")}
-                      >
-                        Admin
-                      </NavLink>
-                    )}
-                    <button
-                      onClick={() => {
-                        setMobileOpen(false);
-                        logout();
-                      }}
-                      className="rounded-md bg-indigo-700 px-3 py-2 text-left text-sm font-semibold text-white hover:bg-indigo-800"
-                    >
-                      Logout
-                    </button>
-                  </>
-                ) : (
-                  <>
-                    <NavLink
-                      to="/login"
-                      onClick={() => setMobileOpen(false)}
-                      className={({ isActive }) => (isActive ? "font-semibold text-indigo-700" : "text-gray-700")}
-                    >
-                      Login
-                    </NavLink>
-                    <NavLink
-                      to="/register"
-                      onClick={() => setMobileOpen(false)}
-                      className={({ isActive }) => (isActive ? "font-semibold text-indigo-700" : "text-gray-700")}
-                    >
-                      Register
-                    </NavLink>
-                  </>
-                )}
-              </nav>
+              {user ? (
+                <button
+                  className="btn-primary w-full"
+                  onClick={() => {
+                    setMobileOpen(false);
+                    logout();
+                  }}
+                >
+                  Logout
+                </button>
+              ) : (
+                <div className="grid grid-cols-2 gap-3">
+                  <Link to="/login" className="btn-secondary text-center" onClick={() => setMobileOpen(false)}>
+                    Login
+                  </Link>
+                  <Link to="/register" className="btn-primary text-center" onClick={() => setMobileOpen(false)}>
+                    Register
+                  </Link>
+                </div>
+              )}
             </div>
           </div>
         )}
       </header>
 
-      <main className="app-container py-6">{children}</main>
+      <main className="app-container py-8 md:py-10">{children}</main>
 
-      <footer className="border-t py-6 text-center text-sm text-gray-500">
-        © {new Date().getFullYear()} StayBook. All rights reserved.
+      <footer className="border-t border-white/60 bg-white/60 py-10 backdrop-blur">
+        <div className="app-container grid gap-6 md:grid-cols-3">
+          <div>
+            <p className="text-sm font-semibold uppercase tracking-[0.28em] text-indigo-500">StayBook AI</p>
+            <p className="mt-3 max-w-md text-sm text-slate-600">
+              Modern hotel booking with smart recommendations, real-time availability, secure payments, and an AI-powered guest experience.
+            </p>
+          </div>
+          <div className="text-sm text-slate-600">
+            <p className="font-semibold text-slate-900">Platform features</p>
+            <ul className="mt-3 space-y-2">
+              <li>• Smart natural-language search</li>
+              <li>• Dynamic pricing insights</li>
+              <li>• Personalized dashboard and wishlist</li>
+            </ul>
+          </div>
+          <div className="text-sm text-slate-600">
+            <p className="font-semibold text-slate-900">Deployment ready</p>
+            <ul className="mt-3 space-y-2">
+              <li>• Frontend optimized for Vercel</li>
+              <li>• Backend optimized for Render</li>
+              <li>• Environment-driven API and auth</li>
+            </ul>
+          </div>
+        </div>
       </footer>
     </div>
   );
 }
-

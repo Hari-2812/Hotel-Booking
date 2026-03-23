@@ -23,6 +23,7 @@ const env = {
 
   // Optional: create an admin user automatically for bootstrapping.
   SEED_ADMIN_EMAIL: process.env.SEED_ADMIN_EMAIL || "",
+  GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID || '',
 };
 
 function requireEnv(key) {
