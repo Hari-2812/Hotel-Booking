@@ -8,25 +8,26 @@ import toast from 'react-hot-toast';
 import RequireAuth from '../components/RequireAuth';
 import ErrorBanner from '../components/ErrorBanner';
 import { api } from '../services/api';
-import { confirmPayment, createBookingIntent } from '../services/bookingService';
+import { confirmPayment, createBookingIntent, reserveBooking } from '../services/bookingService';
 
-function CheckoutPanel({ room, checkIn, checkOut, guests, onSuccess }) {
+function StripeReservationSection({ room, checkIn, checkOut, guests, canSubmit, onSuccess }) {
   const stripe = useStripe();
   const elements = useElements();
   const [processing, setProcessing] = useState(false);
 
   async function handlePayment() {
-    if (!stripe || !elements) return;
+    if (!stripe || !elements) {
+      toast.error('Stripe is still loading.');
+      return;
+    }
     setProcessing(true);
     try {
       const booking = await createBookingIntent({ roomId: room._id, checkIn, checkOut, guests });
       const card = elements.getElement(CardElement);
       const result = await stripe.confirmCardPayment(booking.clientSecret, { payment_method: { card } });
-      if (result.error) {
-        throw new Error(result.error.message || 'Payment failed');
-      }
+      if (result.error) throw new Error(result.error.message || 'Payment failed');
       await confirmPayment({ bookingId: booking.bookingId, paymentIntentId: result.paymentIntent.id });
-      toast.success('Booking confirmed');
+      toast.success('Payment complete. Your booking is confirmed.');
       onSuccess();
     } catch (error) {
       toast.error(error.message || 'Payment failed');
@@ -36,9 +37,22 @@ function CheckoutPanel({ room, checkIn, checkOut, guests, onSuccess }) {
   }
 
   return (
-    <button className="btn-primary w-full" onClick={handlePayment} disabled={processing || !checkIn || !checkOut}>
-      {processing ? 'Processing payment...' : 'Secure checkout'}
-    </button>
+    <div className="mt-5 rounded-[28px] border border-slate-200 bg-slate-50 p-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-xs uppercase tracking-[0.28em] text-slate-400">Online payment</p>
+          <h2 className="mt-2 text-2xl font-semibold text-slate-950">Pay now with Stripe</h2>
+        </div>
+        <div className="badge badge-primary">Secure</div>
+      </div>
+      <div className="mt-5 rounded-3xl border border-slate-200 bg-white px-4 py-5 shadow-sm">
+        <CardElement options={{ hidePostalCode: true }} />
+      </div>
+      <p className="mt-3 text-xs leading-6 text-slate-500">Your reservation is confirmed immediately after successful payment.</p>
+      <button className="btn-primary mt-5 w-full" onClick={handlePayment} disabled={!canSubmit || processing}>
+        {processing ? 'Processing payment...' : 'Pay now with Stripe'}
+      </button>
+    </div>
   );
 }
 
@@ -51,6 +65,7 @@ function BookingPageInner() {
   const [guests, setGuests] = useState(2);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
+  const [reserveLoading, setReserveLoading] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -79,74 +94,142 @@ function BookingPageInner() {
   }, [checkIn, checkOut]);
 
   const total = useMemo(() => Number(room?.basePricePerNight || 0) * nights, [room, nights]);
+  const canSubmit = Boolean(checkIn && checkOut && guests > 0 && nights > 0);
   const stripePromise = useMemo(() => {
     const publishableKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY;
     return publishableKey ? loadStripe(publishableKey) : null;
   }, []);
+  const heroImage = room?.images?.[0] || 'https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=1200&q=80';
 
-  if (loading) return <div className="glass-panel p-8 text-slate-500">Loading booking details...</div>;
+  async function handleReservePayLater() {
+    if (!canSubmit) {
+      toast.error('Please select valid dates and guest count first.');
+      return;
+    }
+
+    setReserveLoading(true);
+    setError('');
+    try {
+      await reserveBooking({ roomId: room._id, checkIn, checkOut, guests });
+      toast.success('Reservation created successfully. You can pay at the hotel.');
+      navigate('/dashboard');
+    } catch (reserveError) {
+      setError(reserveError.message || 'Failed to reserve room');
+    } finally {
+      setReserveLoading(false);
+    }
+  }
+
+  if (loading) return <div className="elevated-panel p-8 text-slate-500">Loading booking details...</div>;
   if (error) return <ErrorBanner message={error} />;
-  if (!room) return <div className="glass-panel p-8 text-slate-500">Room not found.</div>;
+  if (!room) return <div className="elevated-panel p-8 text-slate-500">Room not found.</div>;
 
   return (
     <>
       <Helmet>
         <title>Book {room.hotelName} | StayBook AI</title>
       </Helmet>
-      <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
-        <section className="glass-panel p-8">
-          <p className="eyebrow">Secure checkout</p>
-          <h1 className="mt-3 text-4xl font-semibold text-slate-950">Complete your stay at {room.hotelName}</h1>
-          <p className="mt-3 text-sm text-slate-600">Availability is revalidated server-side before payment to prevent double-booking.</p>
+      <div className="space-y-8">
+        <section className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
+          <div className="overflow-hidden rounded-[32px] border border-white/70 bg-white shadow-premium">
+            <div className="relative h-[320px] overflow-hidden">
+              <img src={heroImage} alt={room.hotelName} className="h-full w-full object-cover" />
+              <div className="absolute inset-0 bg-gradient-to-t from-slate-950/70 via-slate-900/10 to-transparent" />
+              <div className="absolute bottom-0 left-0 right-0 p-8 text-white">
+                <p className="text-xs font-semibold uppercase tracking-[0.35em] text-sky-200">Premium stay</p>
+                <h1 className="mt-3 text-4xl font-semibold">Book {room.hotelName}</h1>
+                <p className="mt-2 max-w-2xl text-sm text-slate-200">Finalize your dates below. We’ll re-check availability before the reservation is created.</p>
+              </div>
+            </div>
 
-          <div className="mt-8 grid gap-4 md:grid-cols-3">
-            <div>
-              <label className="label">Check-in</label>
-              <input className="input mt-2" type="date" min={format(new Date(), 'yyyy-MM-dd')} value={checkIn} onChange={(e) => { setCheckIn(e.target.value); if (checkOut && e.target.value >= checkOut) setCheckOut(''); }} />
-            </div>
-            <div>
-              <label className="label">Check-out</label>
-              <input className="input mt-2" type="date" min={checkIn || format(new Date(), 'yyyy-MM-dd')} value={checkOut} onChange={(e) => setCheckOut(e.target.value)} />
-            </div>
-            <div>
-              <label className="label">Guests</label>
-              <input className="input mt-2" type="number" min="1" max={room.maxGuests} value={guests} onChange={(e) => setGuests(Number(e.target.value))} />
+            <div className="grid gap-6 p-8 lg:grid-cols-[1fr_0.95fr]">
+              <div>
+                <h2 className="text-2xl font-semibold text-slate-950">Trip details</h2>
+                <p className="mt-2 text-sm text-slate-500">Choose dates, guest count, and your preferred checkout flow.</p>
+                <div className="mt-6 grid gap-4 md:grid-cols-2">
+                  <div>
+                    <label className="label">Check-in</label>
+                    <input className="input mt-2" type="date" min={format(new Date(), 'yyyy-MM-dd')} value={checkIn} onChange={(e) => { setCheckIn(e.target.value); if (checkOut && e.target.value >= checkOut) setCheckOut(''); }} />
+                  </div>
+                  <div>
+                    <label className="label">Check-out</label>
+                    <input className="input mt-2" type="date" min={checkIn || format(new Date(), 'yyyy-MM-dd')} value={checkOut} onChange={(e) => setCheckOut(e.target.value)} />
+                  </div>
+                  <div className="md:col-span-2">
+                    <label className="label">Guests</label>
+                    <input className="input mt-2" type="number" min="1" max={room.maxGuests} value={guests} onChange={(e) => setGuests(Number(e.target.value))} />
+                    <p className="mt-2 text-xs text-slate-400">This room supports up to {room.maxGuests} guests.</p>
+                  </div>
+                </div>
+                <div className="mt-8 grid gap-4 sm:grid-cols-3">
+                  {[
+                    { label: 'Flexible changes', text: 'Modify bookings from your dashboard.' },
+                    { label: 'Live inventory', text: 'Availability is validated in real time.' },
+                    { label: 'Guest-ready support', text: 'Reserve now or pay online instantly.' },
+                  ].map((item) => (
+                    <div key={item.label} className="rounded-3xl border border-slate-200 bg-slate-50 p-4">
+                      <p className="text-sm font-semibold text-slate-950">{item.label}</p>
+                      <p className="mt-2 text-xs leading-6 text-slate-500">{item.text}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="rounded-[28px] border border-slate-200 bg-slate-50 p-6">
+                <p className="text-xs uppercase tracking-[0.28em] text-slate-400">Checkout options</p>
+                <h2 className="mt-2 text-2xl font-semibold text-slate-950">Choose how to confirm</h2>
+                <div className="mt-5 space-y-3 text-sm text-slate-600">
+                  <div className="rounded-3xl bg-white p-4 shadow-sm">
+                    <p className="font-semibold text-slate-950">Option 1 — Pay online</p>
+                    <p className="mt-2 text-xs leading-6">Best for instant confirmation with card payment through Stripe.</p>
+                  </div>
+                  <div className="rounded-3xl bg-white p-4 shadow-sm">
+                    <p className="font-semibold text-slate-950">Option 2 — Reserve now, pay later</p>
+                    <p className="mt-2 text-xs leading-6">Ideal when Stripe is not configured or when you want payment at the hotel.</p>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 
-          <div className="mt-8 rounded-[28px] border border-white/60 bg-white/70 p-5 shadow-soft">
-            <p className="text-sm font-semibold text-slate-900">Card details</p>
-            <div className="mt-4 rounded-2xl border border-slate-200 bg-white px-4 py-5 shadow-inner">
-              <CardElement options={{ hidePostalCode: true }} />
+          <aside className="space-y-6">
+            <div className="elevated-panel p-8">
+              <p className="text-xs uppercase tracking-[0.3em] text-slate-400">Reservation summary</p>
+              <h2 className="mt-3 text-3xl font-semibold text-slate-950">{room.hotelName}</h2>
+              <p className="mt-2 text-sm text-slate-500">{room.location}</p>
+              <div className="mt-6 space-y-4 text-sm text-slate-600">
+                <div className="flex items-center justify-between"><span>Nightly rate</span><span className="font-semibold text-slate-950">${room.basePricePerNight}</span></div>
+                <div className="flex items-center justify-between"><span>Nights</span><span className="font-semibold text-slate-950">{nights}</span></div>
+                <div className="flex items-center justify-between"><span>Guests</span><span className="font-semibold text-slate-950">{guests}</span></div>
+                <div className="flex items-center justify-between rounded-2xl bg-slate-950 px-4 py-4 text-white"><span>Total stay</span><span className="text-xl font-semibold">${Number(total || 0).toFixed(2)}</span></div>
+              </div>
+
+              {stripePromise ? (
+                <Elements stripe={stripePromise}>
+                  <StripeReservationSection room={room} checkIn={checkIn} checkOut={checkOut} guests={guests} canSubmit={canSubmit} onSuccess={() => navigate('/dashboard')} />
+                </Elements>
+              ) : (
+                <div className="mt-5 rounded-3xl border border-dashed border-amber-300 bg-amber-50 px-4 py-4 text-sm text-amber-700">
+                  Stripe is not configured right now, but guests can still complete reservations using the pay-later option below.
+                </div>
+              )}
+
+              <button className="btn-secondary mt-4 w-full" onClick={handleReservePayLater} disabled={!canSubmit || reserveLoading}>
+                {reserveLoading ? 'Creating reservation...' : 'Reserve now & pay at hotel'}
+              </button>
+              <p className="mt-4 text-xs leading-6 text-slate-400">You can cancel or modify active bookings from your dashboard after the reservation is created.</p>
             </div>
-          </div>
+
+            <div className="elevated-panel p-6">
+              <h3 className="text-lg font-semibold text-slate-950">Included at this stay</h3>
+              <div className="mt-4 flex flex-wrap gap-2">
+                {(room.amenities || []).length > 0
+                  ? room.amenities.map((amenity) => <span key={amenity} className="badge">{amenity}</span>)
+                  : <span className="text-sm text-slate-500">Amenities will be shared on confirmation.</span>}
+              </div>
+            </div>
+          </aside>
         </section>
-
-        <aside className="glass-panel p-8">
-          <div className="rounded-3xl bg-slate-950 p-6 text-white">
-            <p className="text-xs uppercase tracking-[0.24em] text-slate-400">Booking summary</p>
-            <h2 className="mt-3 text-2xl font-semibold">{room.hotelName}</h2>
-            <p className="mt-2 text-sm text-slate-300">{room.location}</p>
-            <div className="mt-5 space-y-3 text-sm">
-              <div className="flex items-center justify-between"><span>Nightly rate</span><span>${room.basePricePerNight}</span></div>
-              <div className="flex items-center justify-between"><span>Nights</span><span>{nights}</span></div>
-              <div className="flex items-center justify-between"><span>Guests</span><span>{guests}</span></div>
-              <div className="flex items-center justify-between text-lg font-semibold"><span>Total</span><span>${Number(total || 0).toFixed(2)}</span></div>
-            </div>
-          </div>
-
-          {!stripePromise ? (
-            <div className="mt-6 rounded-3xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
-              Set <code>VITE_STRIPE_PUBLISHABLE_KEY</code> to enable checkout.
-            </div>
-          ) : (
-            <div className="mt-6">
-              <Elements stripe={stripePromise}>
-                <CheckoutPanel room={room} checkIn={checkIn} checkOut={checkOut} guests={guests} onSuccess={() => navigate('/dashboard')} />
-              </Elements>
-            </div>
-          )}
-        </aside>
       </div>
     </>
   );

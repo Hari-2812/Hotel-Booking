@@ -3,7 +3,7 @@ const { body, param, query } = require('express-validator');
 
 const { authMiddleware } = require('../middleware/authMiddleware');
 const { validateRequest } = require('../middleware/validateRequest');
-const { getMyBookings, cancelBooking, modifyBooking } = require('../controllers/bookingController');
+const { getMyBookings, cancelBooking, modifyBooking, createManualBooking } = require('../controllers/bookingController');
 const { createStripeIntent } = require('../controllers/paymentController');
 
 const router = express.Router();
@@ -14,6 +14,15 @@ router.post(
   [body('roomId').isMongoId(), body('checkIn').isISO8601(), body('checkOut').isISO8601(), body('guests').isInt({ min: 1, max: 20 }).toInt()],
   validateRequest(),
   createStripeIntent
+);
+
+
+router.post(
+  '/reserve',
+  authMiddleware,
+  [body('roomId').isMongoId(), body('checkIn').isISO8601(), body('checkOut').isISO8601(), body('guests').isInt({ min: 1, max: 20 }).toInt()],
+  validateRequest(),
+  createManualBooking
 );
 
 router.get('/mine', authMiddleware, [query('page').optional().isInt({ min: 1 }), query('limit').optional().isInt({ min: 1, max: 50 })], validateRequest(), getMyBookings);

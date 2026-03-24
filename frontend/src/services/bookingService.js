@@ -5,6 +5,11 @@ export async function createBookingIntent(payload) {
   return response.data;
 }
 
+export async function reserveBooking(payload) {
+  const response = await api.post('/api/bookings/reserve', payload);
+  return response.data;
+}
+
 export async function confirmPayment(payload) {
   const response = await api.post('/api/payments/stripe/confirm', payload);
   return response.data;
