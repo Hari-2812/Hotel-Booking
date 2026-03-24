@@ -15,15 +15,22 @@ const env = {
   STRIPE_CURRENCY: process.env.STRIPE_CURRENCY || "usd",
   ENABLE_STRIPE: process.env.ENABLE_STRIPE || "false",
 
+  ENABLE_RAZORPAY: process.env.ENABLE_RAZORPAY || "false",
+  RAZORPAY_KEY_ID: process.env.RAZORPAY_KEY_ID,
+  RAZORPAY_KEY_SECRET: process.env.RAZORPAY_KEY_SECRET,
+
+  CLOUDINARY_CLOUD_NAME: process.env.CLOUDINARY_CLOUD_NAME,
+  CLOUDINARY_API_KEY: process.env.CLOUDINARY_API_KEY,
+  CLOUDINARY_API_SECRET: process.env.CLOUDINARY_API_SECRET,
+
   EMAIL_HOST: process.env.EMAIL_HOST,
   EMAIL_PORT: process.env.EMAIL_PORT,
   EMAIL_USER: process.env.EMAIL_USER,
   EMAIL_PASS: process.env.EMAIL_PASS,
   EMAIL_FROM: process.env.EMAIL_FROM || process.env.EMAIL_USER,
 
-  // Optional: create an admin user automatically for bootstrapping.
   SEED_ADMIN_EMAIL: process.env.SEED_ADMIN_EMAIL || "",
-  GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID || '',
+  GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID || "",
 };
 
 function requireEnv(key) {
@@ -32,15 +39,17 @@ function requireEnv(key) {
   }
 }
 
-// Required for the app to boot
 requireEnv("MONGO_URI");
 requireEnv("JWT_ACCESS_SECRET");
 
-// Stripe is required only for booking payments endpoints
 if (env.ENABLE_STRIPE !== "false") {
   requireEnv("STRIPE_SECRET_KEY");
   requireEnv("STRIPE_WEBHOOK_SECRET");
 }
 
-module.exports = { env };
+if (env.ENABLE_RAZORPAY !== "false") {
+  requireEnv("RAZORPAY_KEY_ID");
+  requireEnv("RAZORPAY_KEY_SECRET");
+}
 
+module.exports = { env };

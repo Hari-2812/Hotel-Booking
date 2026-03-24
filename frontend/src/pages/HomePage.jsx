@@ -8,6 +8,7 @@ import ErrorBanner from "../components/ErrorBanner";
 import { RoomCardSkeleton } from "../components/LoadingSkeleton";
 import Pagination from "../components/Pagination";
 import RoomCard from "../components/RoomCard";
+import VoiceSearchButton from "../components/VoiceSearchButton";
 import { api } from "../services/api";
 import "react-datepicker/dist/react-datepicker.css";
 import "../styles/home.css";
@@ -127,7 +128,7 @@ export default function HomePage() {
     setError("");
 
     try {
-      const [res] = await Promise.all([
+      const [resultsResponse] = await Promise.all([
         api.get("/api/ai/search", {
           params: { query: smartQuery, guests: filters.guests, limit: 6 },
         }),
@@ -180,9 +181,12 @@ export default function HomePage() {
                     className="input h-14 border-white/20 bg-white/90 text-base text-slate-900"
                     placeholder="Try: luxury hotel in Goa with spa and pool under $200"
                   />
-                  <button type="submit" className="btn-primary h-14 px-6" disabled={smartLoading}>
-                    {smartLoading ? 'Searching...' : 'Smart search'}
-                  </button>
+                  <div className="flex flex-col gap-2 sm:flex-row">
+                    <button type="submit" className="btn-primary h-14 px-6" disabled={smartLoading}>
+                      {smartLoading ? 'Searching...' : 'Smart search'}
+                    </button>
+                    <VoiceSearchButton onResult={(spokenQuery) => setSmartQuery(spokenQuery)} disabled={smartLoading} />
+                  </div>
                 </form>
 
                 <div className="mt-8 grid gap-4 sm:grid-cols-3">
@@ -364,12 +368,6 @@ export default function HomePage() {
             </>
           )}
         </section>
-        <Pagination
-          page={page}
-          total={total}
-          limit={limit}
-          onPageChange={setPage}
-        />
       </div>
     </>
   );

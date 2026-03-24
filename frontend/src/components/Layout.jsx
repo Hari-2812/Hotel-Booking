@@ -1,17 +1,18 @@
-import { useContext, useState } from 'react';
+import { useContext, useMemo, useState } from 'react';
 import { Link, NavLink } from 'react-router-dom';
 import { AuthContext } from '../context/auth-context';
-
-const navigation = [
-  { to: '/', label: 'Discover' },
-  { to: '/wishlist', label: 'Wishlist', auth: true },
-  { to: '/chat', label: 'Concierge', auth: true },
-  { to: '/dashboard', label: 'Dashboard', auth: true },
-  { to: '/admin', label: 'Admin', auth: true, role: 'admin' },
-];
+import { I18nContext } from '../context/i18n-context';
 
 export default function Layout({ children }) {
   const { user, logout } = useContext(AuthContext);
+  const { t, language, setLanguage } = useContext(I18nContext);
+  const navigation = useMemo(() => ([
+    { to: '/', label: t('discover') },
+    { to: '/wishlist', label: t('wishlist'), auth: true },
+    { to: '/chat', label: t('concierge'), auth: true },
+    { to: '/dashboard', label: t('dashboard'), auth: true },
+    { to: '/admin', label: t('admin'), auth: true, role: 'admin' },
+  ]), [t]);
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const visibleNavigation = navigation.filter((item) => {
@@ -51,6 +52,11 @@ export default function Layout({ children }) {
           </nav>
 
           <div className="hidden items-center gap-3 xl:flex">
+            <select className="rounded-xl border border-white/20 bg-white/10 px-3 py-2 text-xs text-white" value={language} onChange={(e) => setLanguage(e.target.value)}>
+              <option value="en">EN</option>
+              <option value="hi">हिं</option>
+              <option value="es">ES</option>
+            </select>
             {user ? (
               <>
                 <div className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm">
