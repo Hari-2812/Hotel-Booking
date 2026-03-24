@@ -1,5 +1,3 @@
-const http = require('http');
-const { Server } = require('socket.io');
 const http = require("http");
 const { Server } = require("socket.io");
 
@@ -14,25 +12,22 @@ async function start() {
   const app = createApp();
   const server = http.createServer(app);
 
-  const allowedOrigins = ['http://localhost:5173', 'http://127.0.0.1:5173', env.CORS_ORIGIN].filter(Boolean);
-  const server = http.createServer(app);
-
   const allowedOrigins = [
     "http://localhost:5173",
+    "http://127.0.0.1:5173",
     "https://hotel-booking-jz2dzzxto-haris-projects-f04f3456.vercel.app",
-  ];
+  ].filter(Boolean);
 
   // ✅ SOCKET.IO
   const io = new Server(server, {
     cors: {
       origin: allowedOrigins,
-      methods: ['GET', 'POST'],
+      methods: ["GET", "POST"],
       credentials: true,
     },
   });
 
-  io.on('connection', (socket) => {
-    socket.on('availability:check', async (payload, cb) => {
+  // ✅ SOCKET EVENTS
   io.on("connection", (socket) => {
     console.log("✅ User connected:", socket.id);
 
@@ -45,11 +40,22 @@ async function start() {
           minPrice,
           maxPrice,
           guests,
+          amenities = [],
+          rating,
           page = 1,
           limit = 12,
+          sort,
         } = payload || {};
 
-        // ✅ SAFE PARSE
+        // ✅ VALIDATION
+        if (!checkIn || !checkOut) {
+          return cb?.({
+            success: false,
+            error: "checkIn and checkOut required",
+          });
+        }
+
+        // ✅ SAFE VALUES
         const safeMinPrice =
           minPrice && minPrice !== "" ? Number(minPrice) : 0;
 
@@ -59,31 +65,20 @@ async function start() {
         const safeGuests =
           guests && guests !== "" ? Number(guests) : 1;
 
-        // ⚠️ IMPORTANT VALIDATION
-        if (!checkIn || !checkOut) {
-          return cb?.({
-            success: false,
-            error: "checkIn and checkOut required",
-          });
-        }
-
         const result = await getAvailableRooms({
-          checkIn: payload?.checkIn,
-          checkOut: payload?.checkOut,
-          location: payload?.location,
-          minPrice: payload?.minPrice,
-          maxPrice: payload?.maxPrice,
-          guests: payload?.guests,
-          amenities: payload?.amenities || [],
-          rating: payload?.rating,
-          page: Number(payload?.page || 1),
-          limit: Number(payload?.limit || 12),
-          sort: payload?.sort,
+          checkIn,
+          checkOut,
+          location,
+          minPrice: safeMinPrice,
+          maxPrice: safeMaxPrice,
+          guests: safeGuests,
+          amenities,
+          rating,
+          page: Number(page),
+          limit: Number(limit),
+          sort,
         });
 
-        cb?.({ success: true, rooms: result.rooms, total: result.total });
-      } catch (error) {
-        cb?.({ success: false, error: error.message || 'Availability check failed' });
         cb?.({
           success: true,
           rooms: result.rooms,
@@ -105,9 +100,7 @@ async function start() {
   });
 }
 
-start().catch((error) => {
-  console.error('❌ Failed to start server', error);
-// ✅ GLOBAL ERROR
+// ✅ START SERVER
 start().catch((e) => {
   console.error("❌ Failed to start server", e);
   process.exit(1);
