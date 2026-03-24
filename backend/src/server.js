@@ -1,44 +1,23 @@
 const http = require("http");
 const { Server } = require("socket.io");
-const cors = require("cors");
-const express = require("express");
 
-const { env } = require('./config/env');
-const { connectDB } = require('./config/db');
-const { createApp } = require('./app');
-const { getAvailableRooms } = require('./services/availability');
+const { env } = require("./config/env");
+const { connectDB } = require("./config/db");
+const { createApp } = require("./app");
+const { getAvailableRooms } = require("./services/availability");
 
 async function start() {
   await connectDB();
-  const app = createApp();
 
-  // ✅ ALLOWED ORIGINS (LOCAL + VERCEL)
+  const app = createApp();
+  const server = http.createServer(app);
+
   const allowedOrigins = [
     "http://localhost:5173",
     "https://hotel-booking-jz2dzzxto-haris-projects-f04f3456.vercel.app",
   ];
 
-  // ✅ CORS (VERY IMPORTANT - PLACE BEFORE ROUTES)
-  app.use(
-    cors({
-      origin: function (origin, callback) {
-        if (!origin || allowedOrigins.includes(origin)) {
-          callback(null, true);
-        } else {
-          callback(new Error("CORS not allowed: " + origin));
-        }
-      },
-      credentials: true,
-    })
-  );
-
-  // ✅ JSON middleware
-  app.use(express.json());
-
-  // ✅ Create HTTP server
-  const server = http.createServer(app);
-
-  // ✅ Socket.IO with CORS
+  // ✅ SOCKET.IO
   const io = new Server(server, {
     cors: {
       origin: allowedOrigins,
@@ -47,9 +26,8 @@ async function start() {
     },
   });
 
-  // ✅ SOCKET EVENTS
   io.on("connection", (socket) => {
-    console.log("User connected:", socket.id);
+    console.log("✅ User connected:", socket.id);
 
     socket.on("availability:check", async (payload, cb) => {
       try {
@@ -64,10 +42,23 @@ async function start() {
           limit = 12,
         } = payload || {};
 
-        // ✅ SAFE VALUES (IMPORTANT FIX)
-        const safeMinPrice = minPrice ? Number(minPrice) : 0;
-        const safeMaxPrice = maxPrice ? Number(maxPrice) : 100000;
-        const safeGuests = guests ? Number(guests) : 1;
+        // ✅ SAFE PARSE
+        const safeMinPrice =
+          minPrice && minPrice !== "" ? Number(minPrice) : 0;
+
+        const safeMaxPrice =
+          maxPrice && maxPrice !== "" ? Number(maxPrice) : 100000;
+
+        const safeGuests =
+          guests && guests !== "" ? Number(guests) : 1;
+
+        // ⚠️ IMPORTANT VALIDATION
+        if (!checkIn || !checkOut) {
+          return cb?.({
+            success: false,
+            error: "checkIn and checkOut required",
+          });
+        }
 
         const result = await getAvailableRooms({
           checkIn,
@@ -87,6 +78,7 @@ async function start() {
         });
       } catch (e) {
         console.error("❌ Socket Error:", e);
+
         cb?.({
           success: false,
           error: e.message || "Availability check failed",
@@ -95,13 +87,12 @@ async function start() {
     });
   });
 
-  // ✅ START SERVER
   server.listen(env.PORT, () => {
     console.log(`🚀 Server running on port ${env.PORT}`);
   });
 }
 
-// ✅ GLOBAL ERROR HANDLING
+// ✅ GLOBAL ERROR
 start().catch((e) => {
   console.error("❌ Failed to start server", e);
   process.exit(1);
