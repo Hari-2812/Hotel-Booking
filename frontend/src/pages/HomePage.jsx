@@ -1,4 +1,5 @@
 import { useContext, useEffect, useMemo, useState } from "react";
+import { motion as Motion } from "framer-motion";
 import DatePicker from "react-datepicker";
 import { format } from "date-fns";
 import { Helmet } from "react-helmet-async";
@@ -9,6 +10,8 @@ import { RoomCardSkeleton } from "../components/LoadingSkeleton";
 import Pagination from "../components/Pagination";
 import RoomCard from "../components/RoomCard";
 import VoiceSearchButton from "../components/VoiceSearchButton";
+import SectionHeader from "../components/SectionHeader";
+import GlassCard from "../components/GlassCard";
 import { api } from "../services/api";
 import "react-datepicker/dist/react-datepicker.css";
 import "../styles/home.css";
@@ -32,6 +35,19 @@ const destinations = [
   { name: 'Beachfront escapes', image: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=900&q=80' },
   { name: 'City luxury stays', image: 'https://images.unsplash.com/photo-1499793983690-e29da59ef1c2?auto=format&fit=crop&w=900&q=80' },
   { name: 'Wellness retreats', image: 'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=900&q=80' },
+];
+
+
+const whyChooseUs = [
+  { title: 'Verified premium hotels', text: 'Every listing is reviewed for quality, amenities, and service standards.', icon: '✅' },
+  { title: 'Instant booking confidence', text: 'Live availability, transparent pricing, and quick support in one flow.', icon: '⚡' },
+  { title: 'AI-assisted planning', text: 'Smart recommendations and concierge guidance tailored to your trip.', icon: '🤖' },
+];
+
+const testimonials = [
+  { name: 'Aarav M.', quote: 'The booking flow felt premium and super smooth on mobile.', role: 'Frequent traveler' },
+  { name: 'Sophia L.', quote: 'Loved the smart search and how quickly I found a perfect stay.', role: 'Digital nomad' },
+  { name: 'Daniel R.', quote: 'Great UI, clear pricing, and really fast checkout experience.', role: 'Business guest' },
 ];
 
 export default function HomePage() {
@@ -158,7 +174,7 @@ export default function HomePage() {
       </Helmet>
 
       <div className="space-y-10">
-        <section className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
+        <Motion.section initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.55 }} className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
           <div className="overflow-hidden rounded-[36px] border border-white/70 bg-white shadow-premium">
             <div className="relative min-h-[520px] overflow-hidden px-8 py-10 md:px-12 md:py-12">
               <img
@@ -289,7 +305,7 @@ export default function HomePage() {
               ))}
             </div>
           </div>
-        </section>
+        </Motion.section>
 
         {/* FILTER */}
         <section className="filter-card">
@@ -328,6 +344,62 @@ export default function HomePage() {
             </div>
           </section>
         )}
+
+        <section className="space-y-5">
+          <SectionHeader
+            eyebrow="Top destinations"
+            title="Curated places guests love"
+            description="Discover trending destinations with premium hotels and unforgettable experiences."
+          />
+          <div className="grid gap-5 md:grid-cols-3">
+            {destinations.map((destination) => (
+              <GlassCard key={`destinations-${destination.name}`} className="p-0 overflow-hidden">
+                <div className="relative h-44">
+                  <img src={destination.image} alt={destination.name} className="h-full w-full object-cover" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950/70 to-transparent" />
+                  <p className="absolute bottom-4 left-4 text-lg font-semibold text-white">{destination.name}</p>
+                </div>
+              </GlassCard>
+            ))}
+          </div>
+        </section>
+
+        <section className="space-y-5">
+          <SectionHeader
+            eyebrow="Why choose us"
+            title="Built for a modern booking experience"
+            description="A polished product experience with real-time inventory and AI-first discovery."
+          />
+          <div className="grid gap-5 md:grid-cols-3">
+            {whyChooseUs.map((item) => (
+              <GlassCard key={item.title}>
+                <p className="text-2xl">{item.icon}</p>
+                <h3 className="mt-3 text-lg font-semibold text-slate-950 dark:text-slate-100">{item.title}</h3>
+                <p className="mt-2 text-sm text-slate-500 dark:text-slate-300">{item.text}</p>
+              </GlassCard>
+            ))}
+          </div>
+        </section>
+
+        <section className="space-y-5">
+          <SectionHeader eyebrow="Guest stories" title="What travelers say" description="Real feedback from guests using StayBook AI." />
+          <div className="grid gap-5 md:grid-cols-3">
+            {testimonials.map((item) => (
+              <GlassCard key={item.name}>
+                <p className="text-sm leading-7 text-slate-600 dark:text-slate-300">“{item.quote}”</p>
+                <p className="mt-4 font-semibold text-slate-950 dark:text-slate-100">{item.name}</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400">{item.role}</p>
+              </GlassCard>
+            ))}
+          </div>
+        </section>
+
+        <section className="rounded-[32px] border border-cyan-200/60 bg-[linear-gradient(135deg,#1e3a8a,#6d28d9)] p-8 text-white shadow-premium">
+          <p className="text-xs uppercase tracking-[0.32em] text-cyan-100">Ready to plan?</p>
+          <h2 className="mt-3 text-4xl font-semibold">Find your perfect stay today.</h2>
+          <p className="mt-3 max-w-2xl text-sm text-cyan-100">Book premium hotels with AI recommendations, instant support, and secure payment options.</p>
+          <button className="btn-secondary mt-6">Book Now</button>
+        </section>
 
         <section className="space-y-5">
           <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">

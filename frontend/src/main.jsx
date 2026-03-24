@@ -6,10 +6,14 @@ import './index.css';
 import App from './App.jsx';
 import { AuthProvider } from './context/AuthContext';
 import { I18nProvider } from './context/I18nContext';
+import { ThemeProvider } from './context/ThemeContext';
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <HelmetProvider>
+      <ThemeProvider>
+        <I18nProvider>
+          <AuthProvider>
       <I18nProvider>
         <AuthProvider>
           <Toaster
@@ -23,6 +27,9 @@ createRoot(document.getElementById('root')).render(
           }}
         />
           <App />
+          </AuthProvider>
+        </I18nProvider>
+      </ThemeProvider>
         </AuthProvider>
       </I18nProvider>
     </HelmetProvider>

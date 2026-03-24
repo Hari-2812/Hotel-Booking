@@ -6,14 +6,37 @@ const mongoSanitize = require("express-mongo-sanitize");
 
 const { env } = require("./config/env");
 
+function isAllowedOrigin(origin, allowedOrigins) {
+  if (!origin) return true;
+  if (allowedOrigins.includes("*")) return true;
+  if (allowedOrigins.includes(origin)) return true;
+
+  try {
+    const hostname = new URL(origin).hostname;
+    if (hostname.endsWith(".vercel.app")) return true;
+    if (hostname.endsWith(".onrender.com")) return true;
+  } catch {
+    return false;
+  }
+
+  return false;
+}
+
 function createApp() {
   const app = express();
 
+  const allowedOrigins = env.CORS_ORIGIN.split(",")
+    .map((origin) => origin.trim())
+    .filter(Boolean);
   const allowedOrigins = env.CORS_ORIGIN.split(",").map((origin) => origin.trim());
 
   app.use(
     cors({
       origin(origin, callback) {
+        if (isAllowedOrigin(origin, allowedOrigins)) {
+          return callback(null, true);
+        }
+        return callback(null, false);
         if (!origin || allowedOrigins.includes(origin)) {
           return callback(null, true);
         }

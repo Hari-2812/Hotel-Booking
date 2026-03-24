@@ -28,7 +28,7 @@ function StripeReservationSection({ room, checkIn, checkOut, guests, canSubmit, 
       if (result.error) throw new Error(result.error.message || 'Payment failed');
       await confirmPayment({ bookingId: booking.bookingId, paymentIntentId: result.paymentIntent.id });
       toast.success('Payment complete. Your booking is confirmed.');
-      onSuccess();
+      onSuccess({ id: booking.bookingId });
     } catch (error) {
       toast.error(error.message || 'Payment failed');
     } finally {
@@ -139,6 +139,7 @@ function BookingPageInner() {
         handler: async (payment) => {
           await verifyRazorpayPayment({ bookingId: orderResponse.bookingId, ...payment });
           toast.success('Razorpay payment complete. Booking confirmed.');
+          navigate('/booking/confirmation', { state: { booking: { id: orderResponse.bookingId } } });
           navigate('/dashboard');
         },
       };
@@ -158,9 +159,9 @@ function BookingPageInner() {
     setReserveLoading(true);
     setError('');
     try {
-      await reserveBooking({ roomId: room._id, checkIn, checkOut, guests });
+      const response = await reserveBooking({ roomId: room._id, checkIn, checkOut, guests });
       toast.success('Reservation created successfully. You can pay at the hotel.');
-      navigate('/dashboard');
+      navigate('/booking/confirmation', { state: { booking: response?.booking } });
     } catch (reserveError) {
       setError(reserveError.message || 'Failed to reserve room');
     } finally {
@@ -254,7 +255,7 @@ function BookingPageInner() {
 
               {stripePromise ? (
                 <Elements stripe={stripePromise}>
-                  <StripeReservationSection room={room} checkIn={checkIn} checkOut={checkOut} guests={guests} canSubmit={canSubmit} onSuccess={() => navigate('/dashboard')} />
+                  <StripeReservationSection room={room} checkIn={checkIn} checkOut={checkOut} guests={guests} canSubmit={canSubmit} onSuccess={(booking) => navigate('/booking/confirmation', { state: { booking } })} />
                 </Elements>
               ) : (
                 <div className="mt-5 rounded-3xl border border-dashed border-amber-300 bg-amber-50 px-4 py-4 text-sm text-amber-700">

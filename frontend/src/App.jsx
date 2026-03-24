@@ -15,6 +15,7 @@ const UnauthorizedPage = lazy(() => import('./pages/UnauthorizedPage'));
 const RoomReviewsPage = lazy(() => import('./pages/RoomReviewsPage'));
 const WishlistPage = lazy(() => import('./pages/WishlistPage'));
 const ChatPage = lazy(() => import('./pages/ChatPage'));
+const BookingConfirmationPage = lazy(() => import('./pages/BookingConfirmationPage'));
 
 export default function App() {
   return (
@@ -25,6 +26,7 @@ export default function App() {
             <Route path="/" element={<HomePage />} />
             <Route path="/rooms/:id" element={<RoomDetailsPage />} />
             <Route path="/rooms/:id/book" element={<BookingPage />} />
+            <Route path="/booking/confirmation" element={<RequireAuth><BookingConfirmationPage /></RequireAuth>} />
             <Route path="/rooms/:roomId/reviews" element={<RoomReviewsPage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
