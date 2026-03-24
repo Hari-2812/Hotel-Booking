@@ -8,7 +8,7 @@ import toast from 'react-hot-toast';
 import RequireAuth from '../components/RequireAuth';
 import ErrorBanner from '../components/ErrorBanner';
 import { api } from '../services/api';
-import { confirmPayment, createBookingIntent, reserveBooking } from '../services/bookingService';
+import { confirmPayment, createBookingIntent, createRazorpayOrder, reserveBooking, verifyRazorpayPayment } from '../services/bookingService';
 
 function StripeReservationSection({ room, checkIn, checkOut, guests, canSubmit, onSuccess }) {
   const stripe = useStripe();
@@ -56,6 +56,18 @@ function StripeReservationSection({ room, checkIn, checkOut, guests, canSubmit, 
   );
 }
 
+
+function loadRazorpayScript() {
+  return new Promise((resolve) => {
+    if (window.Razorpay) return resolve(true);
+    const script = document.createElement('script');
+    script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+    script.onload = () => resolve(true);
+    script.onerror = () => resolve(false);
+    document.body.appendChild(script);
+  });
+}
+
 function BookingPageInner() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -100,6 +112,42 @@ function BookingPageInner() {
     return publishableKey ? loadStripe(publishableKey) : null;
   }, []);
   const heroImage = room?.images?.[0] || 'https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=1200&q=80';
+
+
+  async function handleRazorpayCheckout() {
+    if (!canSubmit) {
+      toast.error('Please select valid dates and guest count first.');
+      return;
+    }
+
+    const loaded = await loadRazorpayScript();
+    if (!loaded) {
+      toast.error('Razorpay SDK failed to load.');
+      return;
+    }
+
+    try {
+      const payload = { roomId: room._id, checkIn, checkOut, guests };
+      const orderResponse = await createRazorpayOrder(payload);
+      const options = {
+        key: orderResponse.keyId,
+        amount: orderResponse.order.amount,
+        currency: orderResponse.order.currency,
+        name: 'StayBook AI',
+        description: `${room.hotelName} booking`,
+        order_id: orderResponse.order.id,
+        handler: async (payment) => {
+          await verifyRazorpayPayment({ bookingId: orderResponse.bookingId, ...payment });
+          toast.success('Razorpay payment complete. Booking confirmed.');
+          navigate('/dashboard');
+        },
+      };
+      const razorpay = new window.Razorpay(options);
+      razorpay.open();
+    } catch (checkoutError) {
+      toast.error(checkoutError.message || 'Failed to initialize Razorpay checkout');
+    }
+  }
 
   async function handleReservePayLater() {
     if (!canSubmit) {
@@ -214,6 +262,7 @@ function BookingPageInner() {
                 </div>
               )}
 
+              <button className="btn-primary mt-4 w-full" onClick={handleRazorpayCheckout} disabled={!canSubmit}>Pay with Razorpay</button>
               <button className="btn-secondary mt-4 w-full" onClick={handleReservePayLater} disabled={!canSubmit || reserveLoading}>
                 {reserveLoading ? 'Creating reservation...' : 'Reserve now & pay at hotel'}
               </button>

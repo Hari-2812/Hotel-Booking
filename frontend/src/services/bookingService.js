@@ -15,6 +15,16 @@ export async function confirmPayment(payload) {
   return response.data;
 }
 
+export async function createRazorpayOrder(payload) {
+  const response = await api.post('/api/payments/razorpay/create-order', payload);
+  return response.data;
+}
+
+export async function verifyRazorpayPayment(payload) {
+  const response = await api.post('/api/payments/razorpay/verify', payload);
+  return response.data;
+}
+
 export async function getMyBookings({ page = 1, limit = 10 } = {}) {
   const response = await api.get('/api/bookings/mine', { params: { page, limit } });
   return response.data;

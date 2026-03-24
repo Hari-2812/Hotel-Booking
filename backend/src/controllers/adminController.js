@@ -3,6 +3,8 @@ const Room = require('../models/Room');
 const User = require('../models/User');
 const { asyncHandler } = require('../utils/asyncHandler');
 
+const { canUseCloudinary, createUploadSignature } = require('../services/cloudinary');
+
 const listRooms = asyncHandler(async (req, res) => {
   const page = Number(req.query.page || 1);
   const limit = Number(req.query.limit || 20);
@@ -95,4 +97,16 @@ const deleteUser = asyncHandler(async (req, res) => {
   res.json({ success: true });
 });
 
-module.exports = { analytics, deleteUser, listBookings, listRooms, listUsers, updateUserRole };
+
+const createImageUploadSignature = asyncHandler(async (req, res) => {
+  if (!canUseCloudinary()) {
+    return res.status(501).json({ success: false, error: 'Cloudinary is not configured on server.' });
+  }
+
+  const timestamp = Math.floor(Date.now() / 1000);
+  const folder = req.body.folder || 'staybook/hotels';
+  const payload = createUploadSignature({ timestamp, folder });
+  res.json({ success: true, ...payload });
+});
+
+module.exports = { analytics, createImageUploadSignature, deleteUser, listBookings, listRooms, listUsers, updateUserRole };

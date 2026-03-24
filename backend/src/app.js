@@ -1,48 +1,49 @@
 const express = require("express");
 const cors = require("cors");
 const hpp = require("hpp");
+const helmet = require("helmet");
+const mongoSanitize = require("express-mongo-sanitize");
+
+const { env } = require("./config/env");
 
 function createApp() {
   const app = express();
 
-  const allowedOrigins = [
-    "http://localhost:5173",
-    "https://hotel-booking-jz2dzzxto-haris-projects-f04f3456.vercel.app",
-  ];
+  const allowedOrigins = env.CORS_ORIGIN.split(",").map((origin) => origin.trim());
 
-  // ✅ CORS
   app.use(
     cors({
-      origin: function (origin, callback) {
+      origin(origin, callback) {
         if (!origin || allowedOrigins.includes(origin)) {
-          callback(null, true);
-        } else {
-          callback(new Error("CORS not allowed: " + origin));
+          return callback(null, true);
         }
+        return callback(new Error(`CORS not allowed: ${origin}`));
       },
       credentials: true,
     })
   );
 
-  // ✅ BODY PARSER
+  app.use(helmet());
   app.use(express.json());
-
-  // ✅ HPP (safe)
+  app.use(mongoSanitize());
   app.use(hpp());
 
-  // ✅ ROUTES
-  app.use("/api/rooms", require("./routes/roomRoutes"));
-  app.use("/api/ai", require("./routes/aiRoutes"));
-
-  // ✅ HEALTH CHECK
   app.get("/", (req, res) => {
-    res.send("API running 🚀");
+    res.send("StayBook AI API running 🚀");
   });
 
-  // ✅ ERROR HANDLER
+  app.use("/api/auth", require("./routes/authRoutes"));
+  app.use("/api/users", require("./routes/userRoutes"));
+  app.use("/api/rooms", require("./routes/roomRoutes"));
+  app.use("/api/reviews", require("./routes/reviewRoutes"));
+  app.use("/api/bookings", require("./routes/bookingRoutes"));
+  app.use("/api/payments", require("./routes/paymentRoutes"));
+  app.use("/api/admin", require("./routes/adminRoutes"));
+  app.use("/api/chat", require("./routes/chatRoutes"));
+  app.use("/api/ai", require("./routes/aiRoutes"));
+
   app.use((err, req, res, next) => {
     console.error("🔥 ERROR:", err);
-
     res.status(err.status || 500).json({
       success: false,
       error: err.message || "Internal Server Error",

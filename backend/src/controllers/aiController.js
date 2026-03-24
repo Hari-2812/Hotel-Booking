@@ -5,9 +5,9 @@ const {
   buildPricingInsight,
   getRecommendations,
   smartSearch,
+  summarizeReviews,
 } = require("../services/aiService");
 
-// ✅ RECOMMENDATIONS
 const recommendations = asyncHandler(async (req, res) => {
   const rooms = await getRecommendations({
     userId: req.user?.id,
@@ -15,9 +15,7 @@ const recommendations = asyncHandler(async (req, res) => {
       location: req.query.location,
       maxBudget: req.query.maxBudget,
       guests: req.query.guests,
-      amenities: req.query.amenities
-        ? String(req.query.amenities).split(",")
-        : [],
+      amenities: req.query.amenities ? String(req.query.amenities).split(",") : [],
       minRating: req.query.minRating,
       keywords: req.query.query ? [req.query.query] : [],
     },
@@ -27,7 +25,6 @@ const recommendations = asyncHandler(async (req, res) => {
   res.json({ success: true, rooms });
 });
 
-// ✅ SMART SEARCH
 const search = asyncHandler(async (req, res) => {
   const rooms = await smartSearch({
     query: req.query.query || "",
@@ -38,47 +35,31 @@ const search = asyncHandler(async (req, res) => {
   res.json({ success: true, rooms });
 });
 
-// ✅ PRICING
 const pricingInsights = asyncHandler(async (req, res) => {
   const room = await Room.findById(req.params.roomId).lean();
+  if (!room) return res.status(404).json({ success: false, error: "Room not found" });
 
-  if (!room) {
-    return res.status(404).json({
-      success: false,
-      error: "Room not found",
-    });
-  }
-
-  const marketRooms = await Room.find({
-    location: room.location,
-    isActive: true,
-  })
-    .limit(10)
-    .lean();
-
+  const marketRooms = await Room.find({ location: room.location, isActive: true }).limit(15).lean();
   const insight = buildPricingInsight(room, marketRooms);
 
   res.json({ success: true, insight });
 });
 
-// ✅ DASHBOARD
+const reviewSummary = asyncHandler(async (req, res) => {
+  const summary = await summarizeReviews(req.params.roomId);
+  res.json({ success: true, summary });
+});
+
 const dashboard = asyncHandler(async (req, res) => {
-  if (!req.user) {
-    return res.status(401).json({
-      success: false,
-      error: "Unauthorized",
-    });
-  }
-
+  if (!req.user) return res.status(401).json({ success: false, error: "Unauthorized" });
   const data = await buildDashboard({ userId: req.user.id });
-
   res.json({ success: true, ...data });
 });
 
-// ✅ EXPORT ALL (VERY IMPORTANT 🔥)
 module.exports = {
   recommendations,
   search,
   pricingInsights,
+  reviewSummary,
   dashboard,
 };

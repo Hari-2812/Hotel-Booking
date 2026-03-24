@@ -1,89 +1,66 @@
-# StayBook AI
+# StayBook AI — Full-Stack MERN Hotel Booking Platform
 
-StayBook AI is an upgraded MERN hotel-booking platform with a modern responsive UI, AI-assisted discovery flows, secure payments, role-based administration, and deployment-ready configuration.
+StayBook AI is a production-ready MERN hotel-booking application with a modern Tailwind UI, AI-powered discovery, dual payment rails (Razorpay + Stripe), and role-based operations for guests and administrators.
 
-## What is included
+## Core stack
 
-### Frontend
-- React + Vite SPA with responsive Tailwind-based UI
-- Lazy-loaded routes and skeleton states
-- Smart natural-language hotel search
-- Personalized dashboard, wishlist, review flows, and AI concierge chat
-- Stripe checkout integration
-- Optional Google Identity sign-in using environment configuration
+- **Frontend:** React + Vite + Tailwind CSS
+- **Backend:** Node.js + Express + MongoDB (Mongoose)
+- **Authentication:** JWT + Google OAuth + optional Firebase Google sign-in
+- **Media:** Cloudinary signed upload flow
+- **Payments:** Razorpay (primary) + Stripe (optional fallback)
+- **Notifications:** Nodemailer transactional emails
+- **AI modules:** recommendation engine, smart search, pricing insights, review summarizer, concierge chat
 
-### Backend
-- Express + MongoDB REST API
-- JWT authentication with role-based access control
-- Optional Google OAuth token login flow
-- AI recommendation/search/pricing insight endpoints powered by heuristic matching
-- Stripe payment intents + confirmation webhook support
-- Admin analytics for bookings, revenue, rooms, and users
-- Booking cancellation and modification support
+## Feature coverage
 
-## Folder structure
+### User-side
+- Responsive hotel and room listing pages with advanced filters and smart query search
+- Voice search (Web Speech API) for hands-free hotel search prompts
+- Dynamic date-based pricing during booking
+- Razorpay checkout + Stripe checkout + reserve-now-pay-later flow
+- Dashboard for bookings, wishlist, profile flows, and AI recommendations
+- AI concierge chat for booking assistance and support answers
+- Multi-language shell support (English, Hindi, Spanish)
 
-```text
-backend/
-  src/
-    config/
-    controllers/
-    middleware/
-    models/
-    routes/
-    services/
-frontend/
-  src/
-    components/
-    context/
-    pages/
-    services/
-```
+### Admin-side
+- Rooms, users, bookings list management
+- Analytics dashboard (revenue, booking volume, user/room counts)
+- Role management and admin booking cancellation
+- Cloudinary upload signature API for secure image management
+
+### AI features
+- **AI hotel recommendations** (`/api/ai/recommendations`)
+- **Smart natural-language search** (`/api/ai/search`)
+- **AI pricing insights** (`/api/ai/pricing/:roomId`)
+- **AI review summarizer** (`/api/ai/reviews/:roomId/summary`)
+- **AI booking assistant chat** (`/api/chat/messages`)
 
 ## Local development
-
-### 1) Install dependencies
 
 ```bash
 cd backend && npm install
 cd ../frontend && npm install
 ```
 
-### 2) Configure environment variables
-
-Copy the example files and fill in your secrets.
-
 ```bash
 cp backend/.env.example backend/.env
 cp frontend/.env.example frontend/.env
 ```
 
-### 3) Run the backend
-
 ```bash
-cd backend
-npm run dev
-```
-
-### 4) Run the frontend
-
-```bash
-cd frontend
-npm run dev
+cd backend && npm run dev
+cd frontend && npm run dev
 ```
 
 ## Environment variables
 
 ### Backend (`backend/.env`)
 - `PORT=5000`
-- `MONGO_URI=your_mongodb_connection_string`
-- `JWT_ACCESS_SECRET=your_jwt_secret`
+- `MONGO_URI=...`
+- `JWT_ACCESS_SECRET=...`
 - `CORS_ORIGIN=http://localhost:5173`
-- `ENABLE_STRIPE=true|false`
-- `STRIPE_SECRET_KEY=...`
-- `STRIPE_WEBHOOK_SECRET=...`
-- `STRIPE_CURRENCY=usd`
-- `GOOGLE_CLIENT_ID=your_google_oauth_client_id`
+- `GOOGLE_CLIENT_ID=...`
 - `SEED_ADMIN_EMAIL=admin@example.com`
 - `EMAIL_HOST=...`
 - `EMAIL_PORT=587`
@@ -91,35 +68,30 @@ npm run dev
 - `EMAIL_PASS=...`
 - `EMAIL_FROM=...`
 
+#### Razorpay
+- `ENABLE_RAZORPAY=true|false`
+- `RAZORPAY_KEY_ID=...`
+- `RAZORPAY_KEY_SECRET=...`
+
+#### Stripe (optional)
+- `ENABLE_STRIPE=true|false`
+- `STRIPE_SECRET_KEY=...`
+- `STRIPE_WEBHOOK_SECRET=...`
+- `STRIPE_CURRENCY=inr`
+
+#### Cloudinary
+- `CLOUDINARY_CLOUD_NAME=...`
+- `CLOUDINARY_API_KEY=...`
+- `CLOUDINARY_API_SECRET=...`
+
 ### Frontend (`frontend/.env`)
 - `VITE_API_URL=http://localhost:5000`
 - `VITE_STRIPE_PUBLISHABLE_KEY=...`
 - `VITE_GOOGLE_CLIENT_ID=...`
 - `VITE_SOCKET_URL=http://localhost:5000`
 
-## Deployment notes
-
-### Frontend → Vercel
-- Set the frontend environment variables in the Vercel dashboard.
-- Ensure `VITE_API_URL` points to the deployed backend.
-
-### Backend → Render
-- Deploy the `backend` folder as a Node service.
-- Add MongoDB, JWT, Stripe, email, and Google OAuth variables in Render.
-- Set `CORS_ORIGIN` to your Vercel domain.
-
-## AI features overview
-
-- **Recommendations:** ranks hotels by budget, amenities, guest capacity, ratings, and prior user behavior.
-- **Smart search:** parses natural language phrases into filters and relevance scoring.
-- **Pricing insights:** compares a hotel against nearby inventory and suggests booking timing.
-- **AI concierge:** responds to support-style prompts about bookings, payments, and policies.
-- **Personalized dashboard:** combines recent searches, booking history, and recommendations.
-
-## Suggested production follow-ups
-
-- Add automated tests for booking, auth, and AI routes.
-- Persist analytics snapshots for long-term trend reporting.
-- Add image upload storage (S3/Cloudinary) instead of direct URLs.
-- Add refund orchestration for Stripe cancellations.
-- Add dedicated websocket rooms for live admin and inventory updates.
+#### Firebase (optional)
+- `VITE_FIREBASE_API_KEY=...`
+- `VITE_FIREBASE_AUTH_DOMAIN=...`
+- `VITE_FIREBASE_PROJECT_ID=...`
+- `VITE_FIREBASE_APP_ID=...`
