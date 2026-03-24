@@ -7,31 +7,20 @@ const {
   dashboard,
   pricingInsights,
   recommendations,
+  reviewSummary,
   search,
 } = require("../controllers/aiController");
 
 const router = express.Router();
 
-// ✅ GET recommendations
 router.get("/recommendations", recommendations);
 
-// ✅ SMART SEARCH
-router.get(
-  "/search",
-  [query("query").isString().trim().notEmpty()],
-  validateRequest,
-  search
-);
+router.get("/search", [query("query").isString().trim().notEmpty()], validateRequest(), search);
 
-// ✅ PRICING
-router.get(
-  "/pricing/:roomId",
-  [param("roomId").isMongoId()],
-  validateRequest,
-  pricingInsights
-);
+router.get("/pricing/:roomId", [param("roomId").isMongoId()], validateRequest(), pricingInsights);
 
-// ✅ DASHBOARD (protected)
+router.get("/reviews/:roomId/summary", [param("roomId").isMongoId()], validateRequest(), reviewSummary);
+
 router.get("/dashboard", authMiddleware, dashboard);
 
 module.exports = router;

@@ -219,3 +219,30 @@ textarea::placeholder {
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
+
+html.dark {
+  color-scheme: dark;
+}
+
+html.dark body {
+  background: #020617;
+  color: #e2e8f0;
+}
+
+html.dark .elevated-panel,
+html.dark .glass-panel {
+  border-color: rgba(51, 65, 85, 0.9);
+  background: rgba(15, 23, 42, 0.72);
+}
+
+html.dark .input,
+html.dark .badge,
+html.dark .btn-secondary {
+  background: #0f172a;
+  color: #e2e8f0;
+  border-color: #334155;
+}
+
+html.dark .label {
+  color: #cbd5e1;
+}

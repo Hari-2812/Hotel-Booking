@@ -3,6 +3,7 @@ import { Helmet } from "react-helmet-async";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import ErrorBanner from "../components/ErrorBanner";
 import GoogleLoginButton from "../components/GoogleLoginButton";
+import FirebaseLoginButton from "../components/FirebaseLoginButton";
 import { AuthContext } from "../context/auth-context";
 import "../styles/login.css";
 
@@ -116,7 +117,10 @@ export default function LoginPage() {
               <span />
             </div>
 
-            <GoogleLoginButton />
+            <div className="space-y-3">
+              <GoogleLoginButton />
+              <FirebaseLoginButton />
+            </div>
 
             <p className="login-footer">
               New here?{" "}

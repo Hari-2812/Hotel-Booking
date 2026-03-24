@@ -3,7 +3,7 @@ const { query } = require("express-validator");
 
 const { authMiddleware, requireRole } = require("../middleware/authMiddleware");
 const { validateRequest } = require("../middleware/validateRequest");
-const { listRooms, listUsers, listBookings, analytics, updateUserRole, deleteUser } = require("../controllers/adminController");
+const { listRooms, listUsers, listBookings, analytics, updateUserRole, deleteUser, createImageUploadSignature } = require("../controllers/adminController");
 const { adminCancelBooking } = require("../controllers/bookingController");
 
 const router = express.Router();
@@ -28,6 +28,14 @@ router.put(
   [require("express-validator").param("id").isMongoId(), require("express-validator").body("role").isIn(["user", "admin"])],
   validateRequest(),
   updateUserRole
+);
+
+
+router.post(
+  "/cloudinary/signature",
+  [require("express-validator").body("folder").optional().isString().trim().isLength({ min: 1, max: 120 })],
+  validateRequest(),
+  createImageUploadSignature
 );
 
 router.delete(

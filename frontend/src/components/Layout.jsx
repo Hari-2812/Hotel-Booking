@@ -1,17 +1,21 @@
-import { useContext, useState } from 'react';
+import { useContext, useMemo, useState } from 'react';
 import { Link, NavLink } from 'react-router-dom';
 import { AuthContext } from '../context/auth-context';
-
-const navigation = [
-  { to: '/', label: 'Discover' },
-  { to: '/wishlist', label: 'Wishlist', auth: true },
-  { to: '/chat', label: 'Concierge', auth: true },
-  { to: '/dashboard', label: 'Dashboard', auth: true },
-  { to: '/admin', label: 'Admin', auth: true, role: 'admin' },
-];
+import { I18nContext } from '../context/i18n-context';
+import { ThemeContext } from '../context/theme-context';
+import ChatbotFloatingButton from './ChatbotFloatingButton';
 
 export default function Layout({ children }) {
   const { user, logout } = useContext(AuthContext);
+  const { t, language, setLanguage } = useContext(I18nContext);
+  const { theme, toggleTheme } = useContext(ThemeContext);
+  const navigation = useMemo(() => ([
+    { to: '/', label: t('discover') },
+    { to: '/wishlist', label: t('wishlist'), auth: true },
+    { to: '/chat', label: t('concierge'), auth: true },
+    { to: '/dashboard', label: t('dashboard'), auth: true },
+    { to: '/admin', label: t('admin'), auth: true, role: 'admin' },
+  ]), [t]);
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const visibleNavigation = navigation.filter((item) => {
@@ -21,7 +25,7 @@ export default function Layout({ children }) {
   });
 
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,_rgba(14,165,233,0.18),_transparent_25%),radial-gradient(circle_at_top_right,_rgba(99,102,241,0.2),_transparent_30%),linear-gradient(180deg,_#f8fafc_0%,_#eef4ff_42%,_#f8fafc_100%)] text-slate-900">
+    <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,_rgba(14,165,233,0.18),_transparent_25%),radial-gradient(circle_at_top_right,_rgba(99,102,241,0.2),_transparent_30%),linear-gradient(180deg,_#f8fafc_0%,_#eef4ff_42%,_#f8fafc_100%)] text-slate-900 dark:bg-[linear-gradient(180deg,#020617,#0f172a,#111827)] dark:text-slate-100">
       <header className="sticky top-0 z-50 border-b border-white/50 bg-slate-950/85 text-white backdrop-blur-xl">
         <div className="app-container flex items-center justify-between py-4">
           <Link to="/" className="flex items-center gap-3">
@@ -51,6 +55,14 @@ export default function Layout({ children }) {
           </nav>
 
           <div className="hidden items-center gap-3 xl:flex">
+            <button className="rounded-xl border border-white/20 bg-white/10 px-3 py-2 text-xs text-white" onClick={toggleTheme}>
+              {theme === 'dark' ? '☀ Light' : '🌙 Dark'}
+            </button>
+            <select className="rounded-xl border border-white/20 bg-white/10 px-3 py-2 text-xs text-white" value={language} onChange={(e) => setLanguage(e.target.value)}>
+              <option value="en">EN</option>
+              <option value="hi">हिं</option>
+              <option value="es">ES</option>
+            </select>
             {user ? (
               <>
                 <div className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm">
@@ -106,6 +118,8 @@ export default function Layout({ children }) {
       </header>
 
       <main className="app-container py-8 md:py-10">{children}</main>
+
+      <ChatbotFloatingButton />
 
       <footer className="mt-10 border-t border-white/60 bg-slate-950 text-slate-200">
         <div className="app-container grid gap-8 py-10 md:grid-cols-3">
