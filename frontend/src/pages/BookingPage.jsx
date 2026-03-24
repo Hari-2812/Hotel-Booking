@@ -140,6 +140,7 @@ function BookingPageInner() {
           await verifyRazorpayPayment({ bookingId: orderResponse.bookingId, ...payment });
           toast.success('Razorpay payment complete. Booking confirmed.');
           navigate('/booking/confirmation', { state: { booking: { id: orderResponse.bookingId } } });
+          navigate('/dashboard');
         },
       };
       const razorpay = new window.Razorpay(options);

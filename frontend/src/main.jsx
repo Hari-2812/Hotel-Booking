@@ -14,6 +14,8 @@ createRoot(document.getElementById('root')).render(
       <ThemeProvider>
         <I18nProvider>
           <AuthProvider>
+      <I18nProvider>
+        <AuthProvider>
           <Toaster
           position="top-right"
           toastOptions={{
@@ -28,6 +30,8 @@ createRoot(document.getElementById('root')).render(
           </AuthProvider>
         </I18nProvider>
       </ThemeProvider>
+        </AuthProvider>
+      </I18nProvider>
     </HelmetProvider>
   </StrictMode>
 );

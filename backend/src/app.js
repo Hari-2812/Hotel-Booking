@@ -28,6 +28,7 @@ function createApp() {
   const allowedOrigins = env.CORS_ORIGIN.split(",")
     .map((origin) => origin.trim())
     .filter(Boolean);
+  const allowedOrigins = env.CORS_ORIGIN.split(",").map((origin) => origin.trim());
 
   app.use(
     cors({
@@ -36,6 +37,10 @@ function createApp() {
           return callback(null, true);
         }
         return callback(null, false);
+        if (!origin || allowedOrigins.includes(origin)) {
+          return callback(null, true);
+        }
+        return callback(new Error(`CORS not allowed: ${origin}`));
       },
       credentials: true,
     })
